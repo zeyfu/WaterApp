@@ -192,7 +192,7 @@ export default function Profile() {
 /* estilos */
 const title = {
   fontSize: 22,
-  fontWeight: "700",
+  fontWeight: "700" as const,
   color: "#1C4A99",
   textAlign: "center" as const,
   marginBottom: 20,

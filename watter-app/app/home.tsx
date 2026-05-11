@@ -164,7 +164,7 @@ export default function Home() {
       trigger: {
         seconds: 3600,
         repeats: true,
-      },
+      } as Notifications.TimeIntervalTriggerInput,
     });
   };
 
@@ -402,14 +402,14 @@ export default function Home() {
 /* estilos */
 const title = {
   fontSize: 20,
-  fontWeight: "700",
+  fontWeight: "700" as const,
   marginBottom: 10,
   color: "#1C4A99",
 };
 
 const subtitle = {
   marginTop: 15,
-  fontWeight: "700",
+  fontWeight: "700" as const,
   color: "#1C4A99",
 };
 
