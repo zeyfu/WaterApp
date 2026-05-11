@@ -1,36 +1,48 @@
-import { View, Text, TouchableOpacity, TextInput } from "react-native";
-import { useRouter } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
-import { auth } from "../src/services/auth";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 import { signOut } from "firebase/auth";
+import { doc, getDoc, getFirestore } from "firebase/firestore";
 import { useEffect, useState } from "react";
-import { getFirestore, doc, getDoc } from "firebase/firestore";
+import { Text, TextInput, TouchableOpacity, View } from "react-native";
+import { auth } from "../src/services/auth";
 import { app } from "../src/services/firebaseConfig";
 import { updateUserData } from "../src/services/firestore";
 
 // 🔔 notifications
 import {
   getNotificationSettings,
-  saveNotificationSettings
+  saveNotificationSettings,
 } from "../src/services/notifications";
 
 const db = getFirestore(app);
 
+// 👤 tipo do usuário
+type UserData = {
+  email?: string;
+  name?: string;
+  weight?: number;
+  age?: number;
+  gender?: string;
+  goal?: number;
+};
+
 export default function Profile() {
   const router = useRouter();
 
-  const [userData, setUserData] = useState(null);
-  const [name, setName] = useState("");
-  const [goal, setGoal] = useState("");
+  const [userData, setUserData] = useState<UserData | null>(null);
+
+  const [name, setName] = useState<string>("");
+  const [goal, setGoal] = useState<string>("");
 
   // 🔔 notificações
-  const [interval, setIntervalState] = useState("3600");
+  const [interval, setIntervalState] = useState<string>("3600");
 
   // 🔍 Buscar dados
   useEffect(() => {
     const fetchUser = async () => {
       const user = auth.currentUser;
+
       if (!user) return;
 
       // 👤 user
@@ -38,8 +50,10 @@ export default function Profile() {
       const docSnap = await getDoc(docRef);
 
       if (docSnap.exists()) {
-        const data = docSnap.data();
+        const data = docSnap.data() as UserData;
+
         setUserData(data);
+
         setName(data.name || "");
         setGoal(String(data.goal || ""));
       }
@@ -56,40 +70,43 @@ export default function Profile() {
   }, []);
 
   // 💾 Salvar perfil
-  const handleSaveProfile = async () => {
+  const handleSaveProfile = async (): Promise<void> => {
     const user = auth.currentUser;
+
     if (!user) return;
 
     await updateUserData(user.uid, {
-      name: name,
-      goal: Number(goal)
+      name,
+      goal: Number(goal),
     });
 
     alert("Perfil atualizado!");
 
-    setUserData((prev) => ({
+    setUserData((prev: UserData | null) => ({
       ...prev,
       name,
-      goal: Number(goal)
+      goal: Number(goal),
     }));
   };
 
   // 🔔 Salvar notificações
-  const handleSaveNotifications = async () => {
+  const handleSaveNotifications = async (): Promise<void> => {
     const user = auth.currentUser;
+
     if (!user) return;
 
     await saveNotificationSettings(user.uid, {
-      enabled: true, // mantém ativo
-      interval: Number(interval)
+      enabled: true,
+      interval: Number(interval),
     });
 
     alert("Configurações de notificação salvas!");
   };
 
   // 🚪 Logout
-  const handleLogout = async () => {
+  const handleLogout = async (): Promise<void> => {
     await signOut(auth);
+
     router.replace("/");
   };
 
@@ -107,7 +124,7 @@ export default function Profile() {
         style={{
           flexDirection: "row",
           justifyContent: "space-between",
-          marginBottom: 20
+          marginBottom: 20,
         }}
       >
         <TouchableOpacity onPress={() => router.back()}>
@@ -124,7 +141,7 @@ export default function Profile() {
         style={{
           backgroundColor: "rgba(255,255,255,0.9)",
           borderRadius: 25,
-          padding: 20
+          padding: 20,
         }}
       >
         <Text style={title}>👤 Perfil</Text>
@@ -136,9 +153,11 @@ export default function Profile() {
 
         {/* PERFIL */}
         <Text style={label}>Nome</Text>
+
         <TextInput value={name} onChangeText={setName} style={input} />
 
         <Text style={label}>Meta diária (ml)</Text>
+
         <TextInput
           value={goal}
           onChangeText={setGoal}
@@ -154,6 +173,7 @@ export default function Profile() {
         <Text style={section}>🔔 Notificações</Text>
 
         <Text style={label}>Intervalo (segundos)</Text>
+
         <TextInput
           value={interval}
           onChangeText={setIntervalState}
@@ -172,47 +192,47 @@ export default function Profile() {
 /* estilos */
 const title = {
   fontSize: 22,
-  fontWeight: "bold",
+  fontWeight: "700",
   color: "#1C4A99",
-  textAlign: "center",
-  marginBottom: 20
+  textAlign: "center" as const,
+  marginBottom: 20,
 };
 
 const section = {
   marginTop: 20,
-  fontWeight: "bold",
+  fontWeight: "bold" as const,
   color: "#1C4A99",
-  fontSize: 16
+  fontSize: 16,
 };
 
 const item = {
   fontSize: 16,
   color: "#334155",
-  marginBottom: 10
+  marginBottom: 10,
 };
 
 const label = {
   color: "#1C4A99",
   marginTop: 10,
   marginBottom: 5,
-  fontWeight: "bold"
+  fontWeight: "bold" as const,
 };
 
 const input = {
   backgroundColor: "#fff",
   padding: 12,
   borderRadius: 10,
-  marginBottom: 10
+  marginBottom: 10,
 };
 
 const button = {
   backgroundColor: "#1C4A99",
   padding: 15,
   borderRadius: 10,
-  marginTop: 10
+  marginTop: 10,
 };
 
 const buttonText = {
   color: "#fff",
-  textAlign: "center"
+  textAlign: "center" as const,
 };
