@@ -39,6 +39,9 @@ import { calculateGoal, getWeather } from "../src/services/weather";
 
 import WaterGlass from "../src/components/WaterGlass";
 
+import HistoryCard from "../src/components/HistoryCard";
+import StreakBadge from "../src/components/StreakBadge";
+
 const db = getFirestore(app);
 
 type HistoryItem = {
@@ -64,6 +67,8 @@ export default function Home() {
   const [modalVisible, setModalVisible] = useState<boolean>(false);
 
   const router = useRouter();
+
+  const [streak, setStreak] = useState<number>(0);
 
   // 🔐 auth
   useEffect(() => {
@@ -150,6 +155,29 @@ export default function Home() {
           data[date] += amount;
         });
 
+        // 🔥 streak real
+        let currentStreak = 0;
+
+        const sortedHistory = Object.entries(data)
+          .map(([date, total]) => ({
+            date,
+            total,
+          }))
+          .sort(
+            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+          );
+
+        for (const day of sortedHistory) {
+          if (day.total >= adjusted) {
+            currentStreak++;
+          } else {
+            break;
+          }
+        }
+
+        setStreak(currentStreak);
+
+        // 📜 histórico formatado
         const formattedHistory: HistoryItem[] = Object.entries(data)
           .map(([date, total]) => ({
             date,
@@ -234,7 +262,7 @@ export default function Home() {
   return (
     <View style={{ flex: 1 }}>
       <LinearGradient
-        colors={["#A8C7F0", "#8DB5EA"]}
+        colors={["#B7D0F5", "#8FB8EE", "#78A6E5"]}
         style={{
           flex: 1,
 
@@ -352,64 +380,10 @@ export default function Home() {
           </View>
 
           {/* 🔥 streak fake */}
-          <View style={streakCard}>
-            <Text style={streakText}>🔥 4 dias seguidos se hidratando</Text>
-          </View>
+          <StreakBadge streak={streak} />
 
           {/* 📜 histórico */}
-          <Text style={historyTitle}>Histórico</Text>
-
-          {history.map((item) => (
-            <View key={item.date} style={historyCard}>
-              <View
-                style={{
-                  flexDirection: "row" as const,
-
-                  justifyContent: "space-between" as const,
-                }}
-              >
-                <Text
-                  style={{
-                    color: "#1C4A99",
-
-                    fontWeight: "600" as const,
-                  }}
-                >
-                  {item.date}
-                </Text>
-
-                <Ionicons name="water" size={18} color="#1C4A99" />
-              </View>
-
-              <Text
-                style={{
-                  marginTop: 8,
-
-                  fontSize: 18,
-
-                  color: "#1C4A99",
-
-                  fontWeight: "700" as const,
-                }}
-              >
-                {item.total} ml
-              </Text>
-
-              <Text
-                style={{
-                  marginTop: 5,
-
-                  color: item.total >= currentGoal ? "#16A34A" : "#EF4444",
-
-                  fontWeight: "600" as const,
-                }}
-              >
-                {item.total >= currentGoal
-                  ? "Meta atingida"
-                  : "Meta não atingida"}
-              </Text>
-            </View>
-          ))}
+          <HistoryCard history={history} currentGoal={currentGoal} />
 
           <View
             style={{
@@ -497,13 +471,13 @@ const subtitleText = {
 };
 
 const glassCard = {
-  backgroundColor: "transparent",
+  backgroundColor: "rgba(255,255,255,0.10)",
 
-  paddingVertical: 25,
+  paddingVertical: 10,
 
   alignItems: "center" as const,
 
-  marginBottom: 25,
+  marginBottom: 10,
 };
 
 const glassGlow = {
@@ -538,6 +512,14 @@ const miniCard = {
   paddingVertical: 18,
 
   alignItems: "center" as const,
+
+  shadowColor: "#1C4A99",
+
+  shadowOpacity: 0.08,
+
+  shadowRadius: 5,
+
+  elevation: 3,
 };
 
 const miniValue = {
@@ -576,10 +558,11 @@ const progressBackground = {
 
 const progressFill = {
   height: "100%" as const,
-
   backgroundColor: "#1C4A99",
-
   borderRadius: 999,
+  shadowColor: "#1C4A99",
+  shadowOpacity: 0.35,
+  shadowRadius: 6,
 };
 
 const streakCard = {
@@ -595,11 +578,9 @@ const streakCard = {
 };
 
 const streakText = {
-  color: "#1C4A99",
-
-  fontWeight: "700" as const,
-
   fontSize: 15,
+  fontWeight: "700",
+  color: "#E67E22",
 };
 
 const historyTitle = {
@@ -669,9 +650,9 @@ const fab = {
 
   alignItems: "center" as const,
 
-  shadowColor: "#000",
+  shadowColor: "#1C4A99",
 
-  shadowOpacity: 0.25,
+  shadowOpacity: 0.45,
 
   shadowRadius: 10,
 
