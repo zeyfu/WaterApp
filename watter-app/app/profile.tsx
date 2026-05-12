@@ -3,13 +3,21 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { signOut } from "firebase/auth";
 import { doc, getDoc, getFirestore } from "firebase/firestore";
-import { useEffect, useState } from "react";
-import { Text, TextInput, TouchableOpacity, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+
 import { auth } from "../src/services/auth";
 import { app } from "../src/services/firebaseConfig";
 import { updateUserData } from "../src/services/firestore";
-
-// 🔔 notifications
 import {
   getNotificationSettings,
   saveNotificationSettings,
@@ -17,7 +25,6 @@ import {
 
 const db = getFirestore(app);
 
-// 👤 tipo do usuário
 type UserData = {
   email?: string;
   name?: string;
@@ -29,210 +36,247 @@ type UserData = {
 
 export default function Profile() {
   const router = useRouter();
-
   const [userData, setUserData] = useState<UserData | null>(null);
-
   const [name, setName] = useState<string>("");
   const [goal, setGoal] = useState<string>("");
+  const [intervalMinutes, setIntervalMinutes] = useState<string>("60");
 
-  // 🔔 notificações
-  const [interval, setIntervalState] = useState<string>("3600");
-
-  // 🔍 Buscar dados
   useEffect(() => {
     const fetchUser = async () => {
       const user = auth.currentUser;
-
       if (!user) return;
 
-      // 👤 user
-      const docRef = doc(db, "users", user.uid);
-      const docSnap = await getDoc(docRef);
-
+      const docSnap = await getDoc(doc(db, "users", user.uid));
       if (docSnap.exists()) {
         const data = docSnap.data() as UserData;
-
         setUserData(data);
-
         setName(data.name || "");
         setGoal(String(data.goal || ""));
       }
 
-      // 🔔 notifications
       const notif = await getNotificationSettings(user.uid);
-
       if (notif) {
-        setIntervalState(String(notif.interval));
+        setIntervalMinutes(String(Math.floor(notif.interval / 60)));
       }
     };
-
     fetchUser();
   }, []);
 
-  // 💾 Salvar perfil
-  const handleSaveProfile = async (): Promise<void> => {
+  const handleSaveProfile = async () => {
     const user = auth.currentUser;
-
     if (!user) return;
 
-    await updateUserData(user.uid, {
-      name,
-      goal: Number(goal),
-    });
-
-    alert("Perfil atualizado!");
-
-    setUserData((prev: UserData | null) => ({
-      ...prev,
-      name,
-      goal: Number(goal),
-    }));
+    try {
+      await updateUserData(user.uid, { name, goal: Number(goal) });
+      alert("Sucesso! Perfil atualizado.");
+    } catch (e) {
+      alert("Erro ao salvar perfil.");
+    }
   };
 
-  // 🔔 Salvar notificações
-  const handleSaveNotifications = async (): Promise<void> => {
+  const handleSaveNotifications = async () => {
     const user = auth.currentUser;
-
     if (!user) return;
 
-    await saveNotificationSettings(user.uid, {
-      enabled: true,
-      interval: Number(interval),
-    });
-
-    alert("Configurações de notificação salvas!");
+    try {
+      await saveNotificationSettings(user.uid, {
+        enabled: true,
+        interval: Number(intervalMinutes) * 60,
+      });
+      alert("Notificações configuradas!");
+    } catch (e) {
+      alert("Erro ao salvar notificações.");
+    }
   };
 
-  // 🚪 Logout
-  const handleLogout = async (): Promise<void> => {
+  const handleLogout = async () => {
     await signOut(auth);
-
-    router.replace("/");
+    router.replace("/" as any);
   };
 
-  if (!userData) {
-    return <Text style={{ padding: 20 }}>Carregando...</Text>;
-  }
+  if (!userData)
+    return (
+      <View style={styles.loading}>
+        <Text>Carregando...</Text>
+      </View>
+    );
 
   return (
     <LinearGradient
-      colors={["#9DB8DB", "#6FA3E8"]}
-      style={{ flex: 1, paddingTop: 50, paddingHorizontal: 20 }}
+      colors={["#B7D0F5", "#8FB8EE", "#78A6E5"]}
+      style={styles.container}
     >
-      {/* TOPO */}
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "space-between",
-          marginBottom: 20,
-        }}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
       >
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={28} color="#1C4A99" />
-        </TouchableOpacity>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {/* HEADER PADRONIZADO COM A HOME */}
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => router.back()}>
+              <Ionicons name="arrow-back" size={28} color="#1C4A99" />
+            </TouchableOpacity>
 
-        <TouchableOpacity onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={28} color="#1C4A99" />
-        </TouchableOpacity>
-      </View>
+            <Text style={styles.headerTitle}>Meu Perfil</Text>
 
-      {/* CARD */}
-      <View
-        style={{
-          backgroundColor: "rgba(255,255,255,0.9)",
-          borderRadius: 25,
-          padding: 20,
-        }}
-      >
-        <Text style={title}>👤 Perfil</Text>
+            <TouchableOpacity onPress={handleLogout}>
+              <Ionicons name="log-out-outline" size={30} color="#1C4A99" />
+            </TouchableOpacity>
+          </View>
 
-        <Text style={item}>Email: {userData.email}</Text>
-        <Text style={item}>Peso: {userData.weight} kg</Text>
-        <Text style={item}>Idade: {userData.age}</Text>
-        <Text style={item}>Sexo: {userData.gender}</Text>
+          {/* INFO CARD */}
+          <View style={styles.glassCard}>
+            <View style={styles.avatarCircle}>
+              <Ionicons name="person" size={40} color="#1C4A99" />
+            </View>
+            <Text style={styles.userEmail}>{userData.email}</Text>
 
-        {/* PERFIL */}
-        <Text style={label}>Nome</Text>
+            <View style={styles.statsRow}>
+              <View style={styles.statItem}>
+                <Text style={styles.statLabel}>Peso</Text>
+                <Text style={styles.statValue}>{userData.weight}kg</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.statItem}>
+                <Text style={styles.statLabel}>Idade</Text>
+                <Text style={styles.statValue}>{userData.age}</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.statItem}>
+                <Text style={styles.statLabel}>Gênero</Text>
+                <Text style={styles.statValue}>{userData.gender}</Text>
+              </View>
+            </View>
+          </View>
 
-        <TextInput value={name} onChangeText={setName} style={input} />
+          {/* EDIT FORM */}
+          <View style={styles.glassCard}>
+            <Text style={styles.sectionTitle}>Dados Pessoais</Text>
 
-        <Text style={label}>Meta diária (ml)</Text>
+            <Text style={styles.inputLabel}>Nome</Text>
+            <TextInput
+              value={name}
+              onChangeText={setName}
+              style={styles.input}
+            />
 
-        <TextInput
-          value={goal}
-          onChangeText={setGoal}
-          keyboardType="numeric"
-          style={input}
-        />
+            <Text style={styles.inputLabel}>Meta Diária (ml)</Text>
+            <TextInput
+              value={goal}
+              onChangeText={setGoal}
+              keyboardType="numeric"
+              style={styles.input}
+            />
 
-        <TouchableOpacity style={button} onPress={handleSaveProfile}>
-          <Text style={buttonText}>Salvar Perfil</Text>
-        </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.saveButton}
+              onPress={handleSaveProfile}
+            >
+              <Text style={styles.saveButtonText}>Salvar Perfil</Text>
+            </TouchableOpacity>
+          </View>
 
-        {/* 🔔 NOTIFICAÇÕES */}
-        <Text style={section}>🔔 Notificações</Text>
-
-        <Text style={label}>Intervalo (segundos)</Text>
-
-        <TextInput
-          value={interval}
-          onChangeText={setIntervalState}
-          keyboardType="numeric"
-          style={input}
-        />
-
-        <TouchableOpacity style={button} onPress={handleSaveNotifications}>
-          <Text style={buttonText}>Salvar Notificações</Text>
-        </TouchableOpacity>
-      </View>
+          {/* NOTIFICATION FORM */}
+          <View style={styles.glassCard}>
+            <Text style={styles.sectionTitle}>Lembretes</Text>
+            <Text style={styles.inputLabel}>Intervalo (em minutos)</Text>
+            <TextInput
+              value={intervalMinutes}
+              onChangeText={setIntervalMinutes}
+              keyboardType="numeric"
+              style={styles.input}
+            />
+            <TouchableOpacity
+              style={styles.saveButton}
+              onPress={handleSaveNotifications}
+            >
+              <Text style={styles.saveButtonText}>Configurar Alertas</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </LinearGradient>
   );
 }
 
-/* estilos */
-const title = {
-  fontSize: 22,
-  fontWeight: "700" as const,
-  color: "#1C4A99",
-  textAlign: "center" as const,
-  marginBottom: 20,
-};
-
-const section = {
-  marginTop: 20,
-  fontWeight: "bold" as const,
-  color: "#1C4A99",
-  fontSize: 16,
-};
-
-const item = {
-  fontSize: 16,
-  color: "#334155",
-  marginBottom: 10,
-};
-
-const label = {
-  color: "#1C4A99",
-  marginTop: 10,
-  marginBottom: 5,
-  fontWeight: "bold" as const,
-};
-
-const input = {
-  backgroundColor: "#fff",
-  padding: 12,
-  borderRadius: 10,
-  marginBottom: 10,
-};
-
-const button = {
-  backgroundColor: "#1C4A99",
-  padding: 15,
-  borderRadius: 10,
-  marginTop: 10,
-};
-
-const buttonText = {
-  color: "#fff",
-  textAlign: "center" as const,
-};
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  loading: { flex: 1, justifyContent: "center", alignItems: "center" },
+  scrollContent: { paddingHorizontal: 20, paddingTop: 50, paddingBottom: 40 },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 25, // Ajustado para bater com o padrão da HomeTop
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#1C4A99",
+  },
+  glassCard: {
+    backgroundColor: "rgba(255,255,255,0.7)",
+    borderRadius: 28,
+    padding: 20,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.3)",
+  },
+  avatarCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "white",
+    alignSelf: "center",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 10,
+    elevation: 4,
+  },
+  userEmail: { textAlign: "center", color: "#5A7FB5", marginBottom: 20 },
+  statsRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginTop: 10,
+  },
+  statItem: { alignItems: "center" },
+  statLabel: { fontSize: 12, color: "#5A7FB5" },
+  statValue: { fontSize: 16, fontWeight: "bold", color: "#1C4A99" },
+  statDivider: {
+    width: 1,
+    height: "100%",
+    backgroundColor: "rgba(0,0,0,0.05)",
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#1C4A99",
+    marginBottom: 15,
+  },
+  inputLabel: {
+    color: "#1C4A99",
+    fontSize: 13,
+    fontWeight: "600",
+    marginBottom: 6,
+    marginLeft: 4,
+  },
+  input: {
+    backgroundColor: "white",
+    padding: 14,
+    borderRadius: 16,
+    marginBottom: 15,
+    color: "#333",
+    fontSize: 16,
+  },
+  saveButton: {
+    backgroundColor: "#1C4A99",
+    padding: 16,
+    borderRadius: 16,
+    alignItems: "center",
+    marginTop: 5,
+  },
+  saveButtonText: { color: "white", fontWeight: "bold", fontSize: 16 },
+});
