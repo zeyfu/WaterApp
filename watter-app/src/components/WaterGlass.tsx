@@ -1,362 +1,188 @@
 import React, { useEffect, useRef } from "react";
-
-import { Animated, Text, View } from "react-native";
-
+import { Animated, Easing, Text, View } from "react-native";
 import Svg, {
-    ClipPath,
-    Defs,
-    Ellipse,
-    LinearGradient,
-    Path,
-    Rect,
-    Stop,
+  Defs,
+  Ellipse,
+  G,
+  LinearGradient,
+  Path,
+  Stop,
 } from "react-native-svg";
 
-const AnimatedRect = Animated.createAnimatedComponent(Rect);
-
+const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedEllipse = Animated.createAnimatedComponent(Ellipse);
+const AnimatedG = Animated.createAnimatedComponent(G);
 
 type Props = {
   percentage: number;
 };
 
 export default function WaterGlass({ percentage }: Props) {
-  // 💧 altura da água
-  const waterHeight = (percentage / 100) * 165;
-
-  // 🎬 animação do nível
-  const animatedHeight = useRef(new Animated.Value(0)).current;
-
-  // 🌊 animação da onda
+  const animatedValue = useRef(new Animated.Value(0)).current;
   const waveAnim = useRef(new Animated.Value(0)).current;
-
   const bubbleAnim = useRef(new Animated.Value(0)).current;
 
-  // 🚀 animação da água subindo
   useEffect(() => {
-    Animated.timing(animatedHeight, {
-      toValue: waterHeight,
-
-      duration: 800,
-
+    Animated.timing(animatedValue, {
+      toValue: percentage,
+      duration: 1200,
+      easing: Easing.out(Easing.quad),
       useNativeDriver: false,
     }).start();
-  }, [waterHeight]);
+  }, [percentage]);
 
   useEffect(() => {
     Animated.loop(
+      Animated.timing(waveAnim, {
+        toValue: 1,
+        duration: 3500,
+        easing: Easing.inOut(Easing.sin),
+        useNativeDriver: false,
+      }),
+    ).start();
+
+    Animated.loop(
       Animated.timing(bubbleAnim, {
         toValue: 1,
-
-        duration: 4000,
-
+        duration: 6000,
+        easing: Easing.linear,
         useNativeDriver: false,
       }),
     ).start();
   }, []);
 
-  // 🌊 loop da onda
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(waveAnim, {
-          toValue: 1,
+  // Lógica de expansão: O copo começa com largura 90 na base e termina com 160 no topo
+  // Interpolamos os pontos do Path para que eles "andem" conforme a água sobe
+  const waterPath = animatedValue.interpolate({
+    inputRange: [0, 100],
+    outputRange: [
+      "M100 220 L180 220 L180 220 L100 220 Z", // Vazio (Linha na base)
+      "M55 50 L225 50 L192 226 L88 226 Z", // Cheio (Trapézio que segue o desenho do copo)
+    ],
+  });
 
-          duration: 1800,
-
-          useNativeDriver: false,
-        }),
-
-        Animated.timing(waveAnim, {
-          toValue: 0,
-
-          duration: 1800,
-
-          useNativeDriver: false,
-        }),
-      ]),
-    ).start();
-  }, []);
-
-  // 🌊 movimento horizontal
   const waveMove = waveAnim.interpolate({
-    inputRange: [0, 1],
-
-    outputRange: [-4, 4],
+    inputRange: [0, 0.5, 1],
+    outputRange: [-3, 3, -3],
   });
 
-  // 🌊 largura dinâmica
-  const waveWidth = waveAnim.interpolate({
-    inputRange: [0, 1],
-
-    outputRange: [68, 74],
+  // Calcula a altura da superfície para as bolhas e elipse
+  const surfaceY = animatedValue.interpolate({
+    inputRange: [0, 100],
+    outputRange: [220, 50],
   });
 
-  const bubbleY = bubbleAnim.interpolate({
-    inputRange: [0, 1],
-
-    outputRange: [210, 70],
+  // Calcula a largura da superfície (ela aumenta conforme sobe)
+  const surfaceWidth = animatedValue.interpolate({
+    inputRange: [0, 100],
+    outputRange: [42, 85],
   });
 
   const bubbleOpacity = bubbleAnim.interpolate({
     inputRange: [0, 0.2, 0.8, 1],
-
-    outputRange: [0, 0.35, 0.25, 0],
-  });
-
-  const waveHeight = waveAnim.interpolate({
-    inputRange: [0, 1],
-
-    outputRange: [8, 11],
+    outputRange: [0, 0.3, 0.2, 0],
   });
 
   return (
-    <View
-      style={{
-        alignItems: "center",
-        justifyContent: "center",
-        marginVertical: 10,
-      }}
-    >
+    <View style={{ alignItems: "center", justifyContent: "center" }}>
       <Svg width={280} height={260} viewBox="0 0 280 260">
         <Defs>
-          {/* 🥛 formato do copo */}
-          <ClipPath id="glassClip">
-            <Path
-              d="
-                M50 40
-                Q140 15 230 40
-                Q205 150 192 226
-                Q140 258 88 226
-                Z
-              "
-            />
-          </ClipPath>
-
-          {/* 💧 gradiente água */}
           <LinearGradient id="waterGradient" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0%" stopColor="#EAF9FF" />
-
-            <Stop offset="40%" stopColor="#8FD2FF" />
-
-            <Stop offset="100%" stopColor="#2F7FE0" stopOpacity="0.78" />
+            <Stop offset="0%" stopColor="#AEE2FF" />
+            <Stop offset="100%" stopColor="#2F7FE0" />
           </LinearGradient>
-
-          {/* ✨ gradiente vidro */}
-          <LinearGradient id="glassGradient" x1="0" y1="0" x2="1" y2="1">
-            <Stop offset="0%" stopColor="rgba(255,255,255,0.22)" />
-
-            <Stop offset="100%" stopColor="rgba(255,255,255,0.02)" />
+          <LinearGradient id="glassReflex" x1="0" y1="0" x2="1" y2="0">
+            <Stop offset="0%" stopColor="white" stopOpacity="0.4" />
+            <Stop offset="50%" stopColor="white" stopOpacity="0.1" />
+            <Stop offset="100%" stopColor="white" stopOpacity="0.0" />
           </LinearGradient>
         </Defs>
 
-        {/* 🌑 sombra externa */}
-        <Ellipse cx="140" cy="232" rx="58" ry="11" fill="rgba(0,0,0,0.06)" />
+        {/* Sombra base */}
+        <Ellipse cx="140" cy="235" rx="55" ry="10" fill="rgba(0,0,0,0.05)" />
 
-        {/* 💧 água animada */}
-        <AnimatedRect
-          x="20"
-          y={Animated.subtract(228, animatedHeight)}
-          width="240"
-          height={animatedHeight}
-          fill="url(#waterGradient)"
-          clipPath="url(#glassClip)"
-        />
+        {/* ÁGUA QUE PREENCHE (Path Animado) */}
+        <AnimatedPath d={waterPath} fill="url(#waterGradient)" />
 
-        {/* 🌊 superfície água animada */}
-        <AnimatedEllipse
-          cx={Animated.add(140, waveMove)}
-          cy={Animated.add(Animated.subtract(228, animatedHeight), 2)}
-          rx={waveWidth}
-          ry={waveHeight}
-          fill="rgba(255,255,255,0.35)"
-          clipPath="url(#glassClip)"
-        />
+        {/* ELEMENTOS INTERNOS (Bolhas e Superfície) */}
+        <G>
+          <AnimatedG style={{ transform: [{ translateY: surfaceY }] }}>
+            <AnimatedEllipse
+              cx={Animated.add(140, waveMove)}
+              cy="0"
+              rx={surfaceWidth}
+              ry="5"
+              fill="#D0EEFF"
+            />
+          </AnimatedG>
 
-        {/* 🌊 profundidade da onda */}
-        <AnimatedEllipse
-          cx={Animated.add(140, Animated.multiply(waveMove, -0.5))}
-          cy={Animated.add(Animated.subtract(228, animatedHeight), 4)}
-          rx={Animated.add(waveWidth, 2)}
-          ry={Animated.divide(waveHeight, 1.5)}
-          fill="rgba(255,255,255,0.15)"
-          clipPath="url(#glassClip)"
-        />
+          {/* Bolhas que acompanham o nível da água */}
+          <AnimatedEllipse
+            cx="115"
+            cy={bubbleAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [210, 60],
+            })}
+            rx="2"
+            ry="2"
+            fill="white"
+            opacity={bubbleOpacity}
+          />
+          <AnimatedEllipse
+            cx="160"
+            cy={bubbleAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [190, 80],
+            })}
+            rx="3"
+            ry="3"
+            fill="white"
+            opacity={bubbleOpacity}
+          />
+        </G>
 
-        {/* ✨ brilho água */}
-        <Ellipse
-          cx="140"
-          cy="205"
-          rx="50"
-          ry="10"
-          fill="rgba(255,255,255,0.12)"
-        />
-
-        {/* 🫧 bolha 1 */}
-        <AnimatedEllipse
-          cx="115"
-          cy={bubbleY}
-          rx="4"
-          ry="4"
-          fill="white"
-          opacity={bubbleOpacity}
-          clipPath="url(#glassClip)"
-        />
-
-        {/* 🫧 bolha 2 */}
-        <AnimatedEllipse
-          cx="155"
-          cy={Animated.add(bubbleY, -35)}
-          rx="6"
-          ry="6"
-          fill="white"
-          opacity={bubbleOpacity}
-          clipPath="url(#glassClip)"
-        />
-
-        {/* 🫧 bolha 3 */}
-        <AnimatedEllipse
-          cx="135"
-          cy={Animated.add(bubbleY, -70)}
-          rx="3"
-          ry="3"
-          fill="white"
-          opacity={bubbleOpacity}
-          clipPath="url(#glassClip)"
-        />
-
-        {/* 🌑 profundidade lateral */}
+        {/* O VIDRO (POR CIMA DE TUDO) */}
         <Path
-          d="
-            M58 48
-            L76 48
-            L96 210
-            L82 210
-            Z
-          "
-          fill="rgba(0,0,0,0.04)"
-        />
-
-        <Path
-          d="
-            M222 48
-            L204 48
-            L184 210
-            L198 210
-            Z
-          "
-          fill="rgba(0,0,0,0.03)"
-        />
-
-        {/* 🥛 vidro externo */}
-        <Path
-          d="
-            M50 40
-            Q140 15 230 40
-            Q205 150 192 226
-            Q140 258 88 226
-            Z
-          "
-          fill="url(#glassGradient)"
+          d="M50 40 Q140 15 230 40 Q205 150 192 226 Q140 258 88 226 Z"
+          fill="rgba(255, 255, 255, 0.08)"
           stroke="#1C4A99"
-          strokeWidth="4"
+          strokeWidth="2.5"
         />
 
-        {/* 🥛 vidro interno */}
+        {/* Reflexo Lateral Premium */}
         <Path
-          d="
-            M66 48
-            Q140 28 214 48
-            Q196 145 180 212
-            Q140 232 100 212
-            Z
-          "
-          fill="transparent"
-          stroke="rgba(255,255,255,0.40)"
-          strokeWidth="2"
+          d="M65 50 Q75 140 85 210 L98 210 Q88 140 78 50 Z"
+          fill="url(#glassReflex)"
         />
 
-        {/* ✨ reflexo lateral */}
-        <Path
-          d="
-            M88 55
-            Q108 95 102 190
-            L84 190
-            Q86 105 72 60
-            Z
-          "
-          fill="rgba(255,255,255,0.30)"
-        />
-
-        {/* ✨ brilho superior */}
-        <Ellipse
-          cx="140"
-          cy="38"
-          rx="82"
-          ry="6"
-          fill="rgba(255,255,255,0.30)"
-        />
-
-        {/* 🥛 aro superior externo */}
+        {/* Brilho Superior e Aro */}
         <Ellipse
           cx="140"
           cy="40"
-          rx="88"
-          ry="10"
-          fill="rgba(255,255,255,0.16)"
-          stroke="rgba(255,255,255,0.45)"
-          strokeWidth="2"
+          rx="90"
+          ry="12"
+          stroke="rgba(255, 255, 255, 0.4)"
+          strokeWidth="1.5"
+          fill="none"
         />
-
-        {/* 🥛 aro interno */}
         <Ellipse
           cx="140"
-          cy="40"
-          rx="74"
-          ry="5"
-          fill="rgba(255,255,255,0.10)"
-        />
-
-        {/* 🥛 fundo interno */}
-        <Ellipse
-          cx="140"
-          cy="214"
-          rx="42"
-          ry="10"
-          fill="rgba(255,255,255,0.12)"
-        />
-
-        {/* 🥛 base grossa */}
-        <Ellipse
-          cx="140"
-          cy="226"
-          rx="54"
-          ry="11"
-          fill="rgba(255,255,255,0.22)"
-          stroke="#1C4A99"
-          strokeWidth="2"
+          cy="222"
+          rx="45"
+          ry="8"
+          stroke="white"
+          strokeOpacity="0.15"
+          strokeWidth="1.5"
+          fill="none"
         />
       </Svg>
 
-      {/* 🔢 porcentagem */}
       <Text
         style={{
           position: "absolute",
-
           color: "#1C4A99",
-
-          fontSize: 24,
-
-          fontWeight: "700" as const,
-
-          textShadowColor: "rgba(255,255,255,0.6)",
-
-          textShadowOffset: {
-            width: 1,
-            height: 1,
-          },
-
-          textShadowRadius: 4,
+          fontSize: 32,
+          fontWeight: "bold",
         }}
       >
         {percentage.toFixed(0)}%
