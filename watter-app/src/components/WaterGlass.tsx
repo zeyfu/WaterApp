@@ -11,7 +11,6 @@ import Svg, {
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedEllipse = Animated.createAnimatedComponent(Ellipse);
-const AnimatedG = Animated.createAnimatedComponent(G);
 
 type Props = {
   percentage: number;
@@ -32,6 +31,7 @@ export default function WaterGlass({ percentage }: Props) {
   }, [percentage]);
 
   useEffect(() => {
+    // Loop das Ondas (Movimento lateral suave)
     Animated.loop(
       Animated.timing(waveAnim, {
         toValue: 1,
@@ -41,6 +41,7 @@ export default function WaterGlass({ percentage }: Props) {
       }),
     ).start();
 
+    // Loop das Bolhas
     Animated.loop(
       Animated.timing(bubbleAnim, {
         toValue: 1,
@@ -51,13 +52,12 @@ export default function WaterGlass({ percentage }: Props) {
     ).start();
   }, []);
 
-  // Lógica de expansão: O copo começa com largura 90 na base e termina com 160 no topo
-  // Interpolamos os pontos do Path para que eles "andem" conforme a água sobe
+  // Lógica de expansão: O copo começa estreito na base e abre no topo
   const waterPath = animatedValue.interpolate({
     inputRange: [0, 100],
     outputRange: [
-      "M100 220 L180 220 L180 220 L100 220 Z", // Vazio (Linha na base)
-      "M55 50 L225 50 L192 226 L88 226 Z", // Cheio (Trapézio que segue o desenho do copo)
+      "M100 220 L180 220 L180 220 L100 220 Z", // Vazio
+      "M55 50 L225 50 L192 226 L88 226 Z", // Cheio seguindo o desenho do copo
     ],
   });
 
@@ -66,13 +66,13 @@ export default function WaterGlass({ percentage }: Props) {
     outputRange: [-3, 3, -3],
   });
 
-  // Calcula a altura da superfície para as bolhas e elipse
+  // Calcula a altura da superfície para a elipse (subida vertical)
   const surfaceY = animatedValue.interpolate({
     inputRange: [0, 100],
     outputRange: [220, 50],
   });
 
-  // Calcula a largura da superfície (ela aumenta conforme sobe)
+  // Calcula a largura da superfície (aumenta conforme o copo abre)
   const surfaceWidth = animatedValue.interpolate({
     inputRange: [0, 100],
     outputRange: [42, 85],
@@ -98,25 +98,24 @@ export default function WaterGlass({ percentage }: Props) {
           </LinearGradient>
         </Defs>
 
-        {/* Sombra base */}
+        {/* Sombra base no chão */}
         <Ellipse cx="140" cy="235" rx="55" ry="10" fill="rgba(0,0,0,0.05)" />
 
-        {/* ÁGUA QUE PREENCHE (Path Animado) */}
+        {/* CORPO DA ÁGUA (Preenchimento que expande lateralmente) */}
         <AnimatedPath d={waterPath} fill="url(#waterGradient)" />
 
-        {/* ELEMENTOS INTERNOS (Bolhas e Superfície) */}
+        {/* ELEMENTOS INTERNOS */}
         <G>
-          <AnimatedG style={{ transform: [{ translateY: surfaceY }] }}>
-            <AnimatedEllipse
-              cx={Animated.add(140, waveMove)}
-              cy="0"
-              rx={surfaceWidth}
-              ry="5"
-              fill="#D0EEFF"
-            />
-          </AnimatedG>
+          {/* Superfície da Água (Elipse que sobe e expande) */}
+          <AnimatedEllipse
+            cx={Animated.add(140, waveMove)}
+            cy={surfaceY}
+            rx={surfaceWidth}
+            ry="5"
+            fill="#D0EEFF"
+          />
 
-          {/* Bolhas que acompanham o nível da água */}
+          {/* Bolhas Animadas */}
           <AnimatedEllipse
             cx="115"
             cy={bubbleAnim.interpolate({
@@ -141,7 +140,7 @@ export default function WaterGlass({ percentage }: Props) {
           />
         </G>
 
-        {/* O VIDRO (POR CIMA DE TUDO) */}
+        {/* O VIDRO (Traçado e preenchimento leve por cima da água) */}
         <Path
           d="M50 40 Q140 15 230 40 Q205 150 192 226 Q140 258 88 226 Z"
           fill="rgba(255, 255, 255, 0.08)"
@@ -149,13 +148,13 @@ export default function WaterGlass({ percentage }: Props) {
           strokeWidth="2.5"
         />
 
-        {/* Reflexo Lateral Premium */}
+        {/* Reflexo Lateral do Vidro */}
         <Path
           d="M65 50 Q75 140 85 210 L98 210 Q88 140 78 50 Z"
           fill="url(#glassReflex)"
         />
 
-        {/* Brilho Superior e Aro */}
+        {/* Detalhes de Brilho Superior (Aro do Copo) */}
         <Ellipse
           cx="140"
           cy="40"
@@ -165,6 +164,8 @@ export default function WaterGlass({ percentage }: Props) {
           strokeWidth="1.5"
           fill="none"
         />
+
+        {/* Brilho no Fundo do Copo */}
         <Ellipse
           cx="140"
           cy="222"
@@ -177,6 +178,7 @@ export default function WaterGlass({ percentage }: Props) {
         />
       </Svg>
 
+      {/* Texto da Porcentagem centralizado */}
       <Text
         style={{
           position: "absolute",
