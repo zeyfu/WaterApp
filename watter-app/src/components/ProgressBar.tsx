@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from "react-native";
 
 interface ProgressBarProps {
   percentage: number;
-  remainingText: string;
+  remainingText?: string;
 }
 
 export function ProgressBar({ percentage, remainingText }: ProgressBarProps) {

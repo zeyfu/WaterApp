@@ -1,10 +1,19 @@
+import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { onAuthStateChanged, User } from "firebase/auth";
 import React, { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
-// Serviços
+// Serviços e Hooks
+import { useWaterData } from "../src/hooks/useWaterData";
 import { auth } from "../src/services/auth";
 import { addWaterLog } from "../src/services/firestore";
 
@@ -14,12 +23,8 @@ import { AddWaterModal } from "../src/components/AddWaterModal";
 import HistoryCard from "../src/components/HistoryCard";
 import { HomeTop } from "../src/components/HomeTop";
 import { ProgressBar } from "../src/components/ProgressBar";
-import { StatsGrid } from "../src/components/StatsGrid";
 import StreakBadge from "../src/components/StreakBadge";
 import WaterGlass from "../src/components/WaterGlass";
-
-// Hook Customizado
-import { useWaterData } from "../src/hooks/useWaterData";
 
 export default function Home() {
   const router = useRouter();
@@ -27,12 +32,15 @@ export default function Home() {
   const [modalVisible, setModalVisible] = useState(false);
   const [customAmount, setCustomAmount] = useState("");
 
-  // Usando o Hook para gerenciar os dados
+  // ESTADO PARA O DROPOUT DO HISTÓRICO
+  const [historyExpanded, setHistoryExpanded] = useState(false);
+
   const {
     water,
     currentGoal,
     history,
     streak,
+    bestStreak,
     temperature,
     setWater,
     refresh,
@@ -40,11 +48,8 @@ export default function Home() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser) {
-        setUser(currentUser);
-      } else {
-        router.replace("/" as any);
-      }
+      if (currentUser) setUser(currentUser);
+      else router.replace("/" as any);
     });
     return unsubscribe;
   }, []);
@@ -53,11 +58,11 @@ export default function Home() {
     if (!user) return;
     try {
       await addWaterLog(user.uid, amount);
-      setWater((prev) => prev + amount); // Atualização otimista (UI rápida)
+      setWater((prev) => prev + amount);
       setModalVisible(false);
-      refresh(); // Sincroniza histórico e streak
+      refresh();
     } catch (error) {
-      console.error("Erro ao adicionar:", error);
+      console.error(error);
     }
   };
 
@@ -67,6 +72,7 @@ export default function Home() {
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="dark-content" />
       <LinearGradient
         colors={["#B7D0F5", "#8FB8EE", "#78A6E5"]}
         style={styles.background}
@@ -74,44 +80,82 @@ export default function Home() {
         <View style={styles.content}>
           <HomeTop
             onProfilePress={() => router.push("/profile" as any)}
-            onNotificationPress={() => {}}
             onLogoutPress={() => auth.signOut()}
           />
 
-          <ScrollView showsVerticalScrollIndicator={false}>
-            <View style={styles.glassContainer}>
-              <WaterGlass percentage={percentage} />
-              {temperature !== null && (
-                <Text style={styles.tempText}>
-                  🌡️ {temperature.toFixed(0)}°C
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 100 }}
+          >
+            {/* HERO CARD UNIFICADO */}
+            <View style={styles.heroCard}>
+              <View style={styles.glassHeader}>
+                <WaterGlass percentage={percentage} />
+                {temperature !== null && (
+                  <View style={styles.tempBadge}>
+                    <Text style={styles.tempText}>
+                      🌡️ {temperature.toFixed(0)}°C
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              <View style={styles.integratedStats}>
+                <View style={styles.statBox}>
+                  <Text style={styles.statValue}>{currentGoal}ml</Text>
+                  <Text style={styles.statLabel}>Meta</Text>
+                </View>
+                <View style={styles.vDivider} />
+                <View style={styles.statBox}>
+                  <Text style={styles.statValue}>{water}ml</Text>
+                  <Text style={styles.statLabel}>Hoje</Text>
+                </View>
+                <View style={styles.vDivider} />
+                <View style={styles.statBox}>
+                  <Text style={styles.statValue}>{percentage.toFixed(0)}%</Text>
+                  <Text style={styles.statLabel}>Foco</Text>
+                </View>
+              </View>
+
+              {/* BARRA DE PROGRESSO INTEGRADA DENTRO DO HERO CARD */}
+              <View style={styles.integratedProgress}>
+                <ProgressBar percentage={percentage} />
+                <Text style={styles.progressStatus}>
+                  {water >= currentGoal
+                    ? "Objetivo Alcançado! 🎯"
+                    : `Ainda faltam ${currentGoal - water}ml`}
                 </Text>
-              )}
+              </View>
             </View>
 
-            <StatsGrid
-              goal={currentGoal}
-              consumed={water}
-              percentage={percentage}
-            />
+            {/* GAMIFICAÇÃO */}
+            <StreakBadge streak={streak} bestStreak={bestStreak} />
 
-            <ProgressBar
-              percentage={percentage}
-              remainingText={
-                currentGoal - water > 0
-                  ? `Faltam ${currentGoal - water} ml`
-                  : "Meta atingida! 🎉"
-              }
-            />
+            {/* HISTÓRICO COM DROPOUT (ACCORDION) */}
+            <TouchableOpacity
+              style={styles.historyHeader}
+              onPress={() => setHistoryExpanded(!historyExpanded)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.sectionTitle}>Histórico Recente</Text>
+              <Ionicons
+                name={historyExpanded ? "chevron-up" : "chevron-down"}
+                size={22}
+                color="#1C4A99"
+              />
+            </TouchableOpacity>
 
-            <StreakBadge streak={streak} />
-
-            <HistoryCard history={history} currentGoal={currentGoal} />
+            {/* RENDERIZAÇÃO CONDICIONAL DO HISTÓRICO */}
+            {historyExpanded && (
+              <View style={styles.historyContainer}>
+                <HistoryCard history={history} currentGoal={currentGoal} />
+              </View>
+            )}
           </ScrollView>
         </View>
       </LinearGradient>
 
       <AddWaterFAB onPress={() => setModalVisible(true)} />
-
       <AddWaterModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
@@ -131,19 +175,68 @@ export default function Home() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   background: { flex: 1 },
-  content: { flex: 1, paddingHorizontal: 20, paddingTop: 50 },
-  glassContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    marginVertical: 20,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    borderRadius: 30,
+  content: { flex: 1, paddingHorizontal: 20, paddingTop: 40 },
+
+  heroCard: {
+    backgroundColor: "rgba(255,255,255,0.25)",
+    borderRadius: 35,
     padding: 20,
-  },
-  tempText: {
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.4)",
     marginTop: 10,
+    marginBottom: 20,
+  },
+  glassHeader: { alignItems: "center", marginBottom: 20 },
+  tempBadge: {
+    backgroundColor: "rgba(255,255,255,0.4)",
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 20,
+    marginTop: 10,
+  },
+  tempText: { color: "#1C4A99", fontWeight: "700", fontSize: 14 },
+
+  integratedStats: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.2)",
+    paddingTop: 20,
+    paddingBottom: 15,
+  },
+  statBox: { alignItems: "center" },
+  statValue: { fontSize: 18, fontWeight: "800", color: "#1C4A99" },
+  statLabel: { fontSize: 12, color: "#5A7FB5", fontWeight: "600" },
+  vDivider: { width: 1, height: 25, backgroundColor: "rgba(255,255,255,0.3)" },
+
+  integratedProgress: {
+    marginTop: 10,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.1)",
+  },
+  progressStatus: {
+    textAlign: "center",
     color: "#1C4A99",
     fontWeight: "700",
-    fontSize: 16,
+    marginTop: 8,
+    fontSize: 13,
+  },
+
+  historyHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 15,
+    paddingHorizontal: 10,
+    backgroundColor: "rgba(255,255,255,0.3)",
+    borderRadius: 20,
+    marginBottom: 10,
+  },
+  sectionTitle: { fontSize: 18, fontWeight: "800", color: "#1C4A99" },
+  historyContainer: {
+    marginTop: 5,
+    paddingBottom: 20,
   },
 });

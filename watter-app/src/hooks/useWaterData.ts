@@ -5,6 +5,7 @@ import {
   getDocs,
   getFirestore,
   query,
+  updateDoc,
   where,
 } from "firebase/firestore";
 import { useEffect, useState } from "react";
@@ -19,22 +20,33 @@ export function useWaterData(user: any) {
   const [goalAdjusted, setGoalAdjusted] = useState(0);
   const [history, setHistory] = useState<any[]>([]);
   const [streak, setStreak] = useState(0);
+  const [bestStreak, setBestStreak] = useState(0); // Estado para o Recorde
   const [temperature, setTemperature] = useState<number | null>(null);
 
   const fetchData = async () => {
     if (!user) return;
 
     try {
-      // 1. Meta Base
-      const docSnap = await getDoc(doc(db, "users", user.uid));
+      // 1. Dados do Usuário (Meta e Recorde)
+      const userRef = doc(db, "users", user.uid);
+      const docSnap = await getDoc(userRef);
+
       let userGoal = 2000;
-      if (docSnap.exists()) userGoal = docSnap.data().goal || 2000;
+      let recordInDb = 0;
+
+      if (docSnap.exists()) {
+        const userData = docSnap.data();
+        userGoal = userData.goal || 2000;
+        recordInDb = userData.bestStreak || 0; // Busca o recorde salvo
+      }
       setGoal(userGoal);
+      setBestStreak(recordInDb);
 
       // 2. Clima
       const temp = await getWeather();
       setTemperature(temp);
-      setGoalAdjusted(calculateGoal(userGoal, temp));
+      const finalGoal = calculateGoal(userGoal, temp);
+      setGoalAdjusted(finalGoal);
 
       // 3. Logs do Firebase
       const q = query(
@@ -57,22 +69,35 @@ export function useWaterData(user: any) {
 
       setHistory(historyArray);
 
-      // 5. Hoje e Streak
+      // 5. Água de Hoje
       const today = new Date().toISOString().split("T")[0];
       setWater(grouped[today] || 0);
 
+      // 6. Cálculo de Streak (Sequência Atual)
       let s = 0;
       let d = new Date();
+
+      // Se não bateu a meta hoje, verificamos se a sequência está viva por ontem
+      if ((grouped[today] || 0) < finalGoal) {
+        d.setDate(d.getDate() - 1);
+      }
+
       while (true) {
         const ds = d.toISOString().split("T")[0];
-        if (grouped[ds] >= userGoal) {
+        if (grouped[ds] >= finalGoal) {
           s++;
           d.setDate(d.getDate() - 1);
         } else break;
       }
       setStreak(s);
+
+      // 7. Atualizar Recorde no Firestore (Se o atual for maior que o salvo)
+      if (s > recordInDb) {
+        await updateDoc(userRef, { bestStreak: s });
+        setBestStreak(s);
+      }
     } catch (e) {
-      console.error(e);
+      console.error("Erro no useWaterData:", e);
     }
   };
 
@@ -85,6 +110,7 @@ export function useWaterData(user: any) {
     currentGoal: goalAdjusted || goal,
     history,
     streak,
+    bestStreak, // Retorna o recorde para a Home
     temperature,
     refresh: fetchData,
     setWater,

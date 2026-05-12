@@ -1,130 +1,121 @@
 import React from "react";
-
-import { Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 type Props = {
   streak: number;
+  bestStreak: number;
 };
 
-export default function StreakBadge({ streak }: Props) {
-  // 🔥 badge dinâmica
-  const getStreakBadge = () => {
-    if (streak >= 100) {
-      return "🏆";
-    }
+export default function StreakBadge({ streak, bestStreak }: Props) {
+  const getBadgeTheme = () => {
+    // Cores mais sólidas e legíveis para o fundo
+    if (streak >= 30)
+      return { color: "#A855F7", bg: "#9333EA", emoji: "👑", label: "Mestre" };
+    if (streak >= 7)
+      return { color: "#2563EB", bg: "#1D4ED8", emoji: "⚡", label: "Focado" };
+    if (streak >= 3)
+      return { color: "#EA580C", bg: "#C2410C", emoji: "🔥", label: "No Fogo" };
 
-    if (streak >= 30) {
-      return "👑";
-    }
-
-    if (streak >= 7) {
-      return "⚡";
-    }
-
-    if (streak >= 3) {
-      return "🔥";
-    }
-
-    return "💧";
+    // Tema INICIANTE (Ajustado para um azul mais elegante e legível)
+    return { color: "#0EA5E9", bg: "#0284C7", emoji: "💧", label: "Iniciante" };
   };
 
-  // 🎨 cor dinâmica
-  const getBadgeColor = () => {
-    if (streak >= 100) {
-      return "#F59E0B";
-    }
-
-    if (streak >= 30) {
-      return "#A855F7";
-    }
-
-    if (streak >= 7) {
-      return "#2563EB";
-    }
-
-    if (streak >= 3) {
-      return "#EA580C";
-    }
-
-    return "#0EA5E9";
-  };
+  const theme = getBadgeTheme();
 
   return (
-    <View
-      style={[
-        styles.container,
+    <View style={[styles.mainCard, { backgroundColor: theme.bg }]}>
+      {/* Lado Esquerdo: Streak Atual */}
+      <View style={styles.section}>
+        <View style={styles.iconCircle}>
+          <Text style={styles.emoji}>{theme.emoji}</Text>
+        </View>
+        <Text style={styles.number}>{streak}</Text>
+        <Text style={styles.label}>Dias Atuais</Text>
+      </View>
 
-        {
-          borderColor: getBadgeColor(),
-        },
-      ]}
-    >
-      {/* emoji */}
-      <Text style={styles.emoji}>{getStreakBadge()}</Text>
+      {/* Divisor Vertical */}
+      <View style={styles.divider} />
 
-      {/* número */}
-      <Text
-        style={[
-          styles.number,
+      {/* Lado Direito: Recorde */}
+      <View style={styles.section}>
+        <View style={styles.iconCircle}>
+          <Text style={styles.emoji}>🏆</Text>
+        </View>
+        <Text style={[styles.number, { color: "#FDE047" }]}>
+          {bestStreak || 0}
+        </Text>
+        <Text style={styles.label}>Recorde</Text>
+      </View>
 
-          {
-            color: getBadgeColor(),
-          },
-        ]}
-      >
-        {streak}
-      </Text>
-
-      {/* label */}
-      <Text style={styles.label}>dias seguidos</Text>
+      {/* Tag de Status Flutuante */}
+      <View style={styles.statusTag}>
+        <Text style={styles.statusTagText}>{theme.label}</Text>
+      </View>
     </View>
   );
 }
 
-const styles = {
-  container: {
-    backgroundColor: "rgba(255,255,255,0.72)",
-
-    width: 150,
-
-    alignSelf: "center" as const,
-
-    alignItems: "center" as const,
-
+const styles = StyleSheet.create({
+  mainCard: {
+    flexDirection: "row",
+    width: "100%", // Agora ocupa toda a largura disponível na Home
+    alignSelf: "center",
     paddingVertical: 20,
-
-    borderRadius: 30,
-
-    marginBottom: 25,
-
-    borderWidth: 2,
-
-    shadowColor: "#000",
-
-    shadowOpacity: 0.08,
-
-    shadowRadius: 8,
-
+    borderRadius: 25,
+    marginBottom: 20,
+    alignItems: "center",
+    justifyContent: "space-around",
     elevation: 4,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    position: "relative",
   },
-
+  section: {
+    alignItems: "center",
+    flex: 1,
+  },
+  iconCircle: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "rgba(255,255,255,0.2)", // Fundo sutil para o ícone
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 5,
+  },
   emoji: {
-    fontSize: 36,
+    fontSize: 24,
   },
-
   number: {
-    fontSize: 34,
-
-    fontWeight: "700" as const,
-
-    marginTop: 5,
+    fontSize: 26,
+    fontWeight: "800",
+    color: "#FFFFFF", // Texto sempre branco para leitura perfeita
   },
-
   label: {
-    color: "#5A7FB5",
-
-    marginTop: 2,
-
-    fontWeight: "600" as const,
+    fontSize: 12,
+    color: "rgba(255,255,255,0.8)", // Texto secundário em branco suave
+    fontWeight: "600",
   },
-};
+  divider: {
+    width: 1,
+    height: "50%",
+    backgroundColor: "rgba(255,255,255,0.3)",
+  },
+  statusTag: {
+    position: "absolute",
+    top: -10,
+    backgroundColor: "#FFFFFF", // Tag branca para destacar do fundo colorido
+    paddingHorizontal: 12,
+    paddingVertical: 3,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+  },
+  statusTagText: {
+    color: "#1C4A99", // Texto da tag combinando com o tema do app
+    fontSize: 10,
+    fontWeight: "bold",
+    textTransform: "uppercase",
+  },
+});

@@ -4,7 +4,7 @@ import { StyleSheet, View } from "react-native";
 
 interface HomeTopProps {
   onProfilePress: () => void;
-  onNotificationPress: () => void;
+  onNotificationPress?: () => void;
   onLogoutPress: () => void;
 }
 
