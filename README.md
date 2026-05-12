@@ -1,159 +1,98 @@
 # 💧 Beba+ — Water Tracker App
 
-Aplicação mobile desenvolvida com **React Native + Expo**, com o objetivo de auxiliar usuários no controle diário de ingestão de água de forma inteligente e personalizada.
-
-O app permite cadastro de usuários, cálculo dinâmico de meta diária, registro de consumo, integração com clima e envio de notificações de lembrete.
+> **A hidratação inteligente na palma da sua mão.**
+> Uma aplicação mobile de alta performance desenvolvida para auxiliar usuários no controle diário de ingestão de água, integrando tecnologia de geolocalização e dados climáticos em tempo real.
 
 ---
 
-## 📱 Funcionalidades
+## 📱 Sobre o Projeto
 
-- 🔐 Cadastro e login de usuários (Firebase Authentication)  
-- 💧 Registro de consumo de água (valores fixos e personalizados)  
-- 🎯 Cálculo automático da meta diária (peso × 35ml)  
-- 🌡️ Ajuste inteligente da meta com base na temperatura atual (API de clima)  
-- 📊 Histórico de consumo por dia  
-- 📈 Barra de progresso diária  
-- 🔔 Notificações de lembrete  
-- 👤 Tela de perfil com dados do usuário  
-- 🎨 Interface moderna com identidade visual própria (Beba+)  
+O **Beba+** não é apenas um contador de água. É um assistente de saúde desenvolvido com **TypeScript** e **React Native** para oferecer uma experiência fluida e intuitiva. O diferencial do app é o seu **Ajuste Dinâmico**: ele identifica sua localização e ajusta sua meta de hidratação automaticamente conforme a temperatura local, garantindo que seu corpo receba o volume ideal de líquidos em dias de calor intenso.
+
+---
+
+## ✨ Funcionalidades Principais
+
+* 🔐 Autenticação Segura: Login e cadastro de usuários via Firebase Authentication.
+* 📍 Geolocalização Real-time: Identificação automática da posição (GPS) para consulta climática (Otimizado para Mobile).
+* 🔥 Sistema de Streak & Recordes: Gamificação que rastreia dias consecutivos de meta batida e armazena seu recorde pessoal (Best Streak) no Firestore.
+* 🌡️ Meta Dinâmica Inteligente: Cálculo baseado em peso (Peso x 35ml) com acréscimos automáticos baseados na temperatura.
+* 💎 Design Glassmorphism: Interface unificada com "Hero Card", transparências modernas e visual limpo (Clean UI).
+* 📉 Histórico Interativo: Sistema de Dropout (Accordion) para organizar os logs sem poluir a interface principal.
+* 📊 Feedback Visual: Barra de progresso integrada e componente de copo d'água dinâmico.
 
 ---
 
 ## 🌡️ Ajuste Inteligente de Meta
 
-O app utiliza a API **Open-Meteo** para obter a temperatura atual e ajustar automaticamente a meta diária de hidratação:
+O app consome a API Open-Meteo para aplicar regras de negócio baseadas no clima da sua região:
 
-- ≥ 35°C → +1000 ml  
-- ≥ 30°C → +700 ml  
-- ≥ 25°C → +400 ml  
-- < 25°C → meta padrão  
-
----
-
-## 🎨 Identidade Visual
-
-- Gradiente azul como base do app  
-- Layout com cards e bordas arredondadas  
-- Botões e FAB (Floating Action Button)  
-- Ícones interativos (perfil, logout, notificações)  
-- Interface consistente e responsiva  
+| Temperatura | Ajuste na Meta |
+| :--- | :--- |
+| >= 35°C (Calor Extremo) | +1000 ml |
+| >= 30°C (Calor Intenso) | +700 ml |
+| >= 25°C (Calor Moderado) | +400 ml |
+| < 25°C (Clima Ameno) | Meta Padrão |
 
 ---
 
-## 🧱 Tecnologias utilizadas
+## 🛠️ Stack Tecnológica
 
-- React Native (Expo)  
-- Expo Router  
-- Firebase Authentication  
-- Firebase Firestore  
-- Expo Notifications  
-
----
-
-## 🔌 Integrações externas
-
-- Firebase Authentication → login e cadastro  
-- Firebase Firestore → armazenamento de dados  
-- Expo Notifications → notificações locais  
-- Open-Meteo API → dados climáticos em tempo real  
+* Linguagem: TypeScript
+* Framework: React Native com Expo
+* Navegação: Expo Router (File-based routing)
+* Backend: Firebase (Auth & Firestore NoSQL)
+* Localização: Expo Location API
+* Arquitetura: Custom Hooks para gerenciamento de estado global (useWaterData)
 
 ---
 
-## 🗄️ Estrutura de dados
+## 🗄️ Estrutura de Dados (Firestore)
 
-### 📁 users
-```json
+### Collection: users
 {
-  "email": "",
-  "weight": 0,
-  "age": 0,
-  "gender": "",
-  "goal": 0
+  "email": "usuario@exemplo.com",
+  "weight": 75,
+  "age": 25,
+  "gender": "Masculino",
+  "goal": 2625,
+  "bestStreak": 15
 }
-📁 waterLogs
-{
-  "userId": "",
-  "date": "YYYY-MM-DD",
-  "amount": 0
-}
-🔗 Relacionamentos
 
-User (1) → (N) WaterLogs
+---
 
-⚙️ Regras de negócio
-A meta base é calculada automaticamente:
-peso × 35ml
-A meta pode ser ajustada dinamicamente com base na temperatura
-O consumo é acumulado por dia
-O histórico é agrupado por data
+## ⚙️ Como Executar o Projeto
 
-📲 Telas da aplicação
-Login
-Cadastro
-Home (controle de consumo + clima)
-Perfil
+1. Clonar o repositório:
+   git clone https://github.com/zeyfu/WaterApp.git
 
-▶️ Como executar o projeto
-1. Clonar o repositório
-git clone https://github.com/zeyfu/WaterApp.git
+2. Instalar dependências:
+   npm install
 
-2. Acessar a pasta
-cd watter-app
+3. Configurar Firebase:
+   Crie o arquivo src/services/firebaseConfig.ts e insira suas credenciais do Firebase.
 
-3. Instalar dependências
-npm install
+4. Inicie o ambiente:
+   npx expo start
 
-4. Rodar o projeto
-npx expo start
+---
 
-5. Executar no celular
-Instale o app Expo Go
-Escaneie o QR Code exibido no terminal
+## 📌 Status do Projeto
 
-🔐 Configuração do Firebase
+* ✅ Geolocalização funcional (Mobile)
+* ✅ Interface Unificada (Hero Card) & Glassmorphism
+* ✅ Autenticação & Persistência de Dados
+* ✅ Lógica de Streak & Recorde Pessoal
+* ✅ Histórico Interativo (Dropout)
+* 🚧 Em desenvolvimento: Notificações Locais Dinâmicas e Gráficos de Consumo Semanal.
 
-Crie o arquivo:
+---
 
-/src/services/firebaseConfig.js
+## 👨‍💻 Autores
 
-Adicione suas credenciais:
+* Henrique Kempim — GitHub: https://github.com/Zeyfu  
+* Guilherme Andrade — GitHub:
 
-import { initializeApp } from "firebase/app";
+---
 
-const firebaseConfig = {
-  apiKey: "SUA_API_KEY",
-  authDomain: "SEU_AUTH_DOMAIN",
-  projectId: "SEU_PROJECT_ID",
-  storageBucket: "SEU_BUCKET",
-  messagingSenderId: "SEU_ID",
-  appId: "SEU_APP_ID"
-};
-
-export const app = initializeApp(firebaseConfig);
-
-📌 Status do projeto
-✅ Etapa atual
-Interface completa (Login, Cadastro, Home, Perfil)
-Navegação entre telas
-Autenticação funcional
-Persistência de dados (Firestore)
-Registro e histórico de consumo
-Integração com API de clima
-Meta dinâmica baseada em temperatura
-Barra de progresso
-
-🚧 Próximas melhorias
-📍 Geolocalização automática (GPS)
-🔔 Controle de notificações (ativar/desativar)
-✏️ Edição completa de perfil
-📈 Estatísticas e gráficos
-💧 Animações (copo enchendo)
-🔥 Sistema de streak (dias consecutivos)
-
-👨‍💻 Autores
-Henrique Kempim
-Guilherme Andrade
-
-📄 Licença
-Projeto acadêmico desenvolvido para fins educacionais.
+Desenvolvido para fins acadêmicos com foco em alta performance e UX (User Experience).
