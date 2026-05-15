@@ -1,8 +1,6 @@
-import React from "react";
-
-import { Text, View } from "react-native";
-
 import { Ionicons } from "@expo/vector-icons";
+import React from "react";
+import { StyleSheet, Text, View } from "react-native";
 
 type HistoryItem = {
   date: string;
@@ -11,121 +9,124 @@ type HistoryItem = {
 
 type Props = {
   history: HistoryItem[];
-
   currentGoal: number;
 };
 
 export default function HistoryCard({ history, currentGoal }: Props) {
   return (
-    <>
-      {/* título */}
-      <Text style={styles.title}>Histórico</Text>
-
-      {/* vazio */}
+    <View style={styles.container}>
       {history.length === 0 && (
         <View style={styles.emptyCard}>
           <Text style={styles.emptyText}>Nenhum registro ainda 💧</Text>
         </View>
       )}
 
-      {/* lista */}
-      {history.map((item) => (
-        <View key={item.date} style={styles.card}>
-          <View
-            style={{
-              flexDirection: "row" as const,
+      <View style={styles.grid}>
+        {history.map((item) => {
+          const isGoalReached = item.total >= currentGoal;
 
-              justifyContent: "space-between" as const,
-            }}
-          >
-            <Text style={styles.date}>{item.date}</Text>
+          return (
+            <View
+              key={item.date}
+              style={[
+                styles.squareCard,
+                { backgroundColor: isGoalReached ? "#DCFCE7" : "#FEE2E2" },
+              ]}
+            >
+              <Text style={styles.dateText}>
+                {item.date.split("-").slice(1).reverse().join("/")}
+              </Text>
 
-            <Ionicons name="water" size={18} color="#1C4A99" />
-          </View>
+              <Ionicons
+                name={isGoalReached ? "checkmark-circle" : "water"}
+                size={20}
+                color={isGoalReached ? "#166534" : "#991B1B"}
+                style={styles.icon}
+              />
 
-          <Text style={styles.amount}>{item.total} ml</Text>
-
-          <Text
-            style={[
-              styles.status,
-
-              {
-                color: item.total >= currentGoal ? "#16A34A" : "#EF4444",
-              },
-            ]}
-          >
-            {item.total >= currentGoal ? "Meta atingida" : "Meta não atingida"}
-          </Text>
-        </View>
-      ))}
-    </>
+              <Text
+                style={[
+                  styles.amountText,
+                  { color: isGoalReached ? "#166534" : "#991B1B" },
+                ]}
+              >
+                {item.total}
+              </Text>
+              <Text
+                style={[
+                  styles.unitText,
+                  { color: isGoalReached ? "#166534" : "#991B1B" },
+                ]}
+              >
+                ml
+              </Text>
+            </View>
+          );
+        })}
+      </View>
+    </View>
   );
 }
 
-const styles = {
-  title: {
-    fontSize: 22,
-
-    fontWeight: "700" as const,
-
-    color: "#1C4A99",
-
-    marginBottom: 15,
+const styles = StyleSheet.create({
+  container: {
+    marginTop: 10,
   },
-
+  title: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#1C4A99",
+    marginBottom: 15,
+    marginLeft: 5,
+  },
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    rowGap: 12,
+  },
+  squareCard: {
+    width: "31%",
+    aspectRatio: 1,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 8,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.03)",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  dateText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#64748B",
+    marginBottom: 4,
+  },
+  icon: {
+    marginBottom: 2,
+  },
+  amountText: {
+    fontSize: 15,
+    fontWeight: "900",
+    lineHeight: 18,
+  },
+  unitText: {
+    fontSize: 10,
+    fontWeight: "700",
+    textTransform: "uppercase",
+  },
   emptyCard: {
     backgroundColor: "rgba(255,255,255,0.6)",
-
     padding: 20,
-
     borderRadius: 22,
-
-    alignItems: "center" as const,
+    alignItems: "center",
   },
-
   emptyText: {
     color: "#5A7FB5",
-
-    fontWeight: "600" as const,
+    fontWeight: "600",
   },
-
-  card: {
-    backgroundColor: "rgba(255,255,255,0.75)",
-
-    padding: 18,
-
-    borderRadius: 22,
-
-    marginBottom: 15,
-
-    shadowColor: "#1C4A99",
-
-    shadowOpacity: 0.05,
-
-    shadowRadius: 5,
-
-    elevation: 2,
-  },
-
-  date: {
-    color: "#1C4A99",
-
-    fontWeight: "600" as const,
-  },
-
-  amount: {
-    marginTop: 8,
-
-    fontSize: 18,
-
-    color: "#1C4A99",
-
-    fontWeight: "700" as const,
-  },
-
-  status: {
-    marginTop: 5,
-
-    fontWeight: "600" as const,
-  },
-};
+});

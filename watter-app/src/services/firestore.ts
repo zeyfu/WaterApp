@@ -51,11 +51,15 @@ export const addWaterLog = async (
   userId: string,
   amount: number,
 ): Promise<void> => {
-  const today = new Date().toISOString().split("T")[0];
+  const now = new Date();
+  const offset = now.getTimezoneOffset() * 60000;
+  const localToday = new Date(now.getTime() - offset)
+    .toISOString()
+    .split("T")[0];
 
   const waterLog: WaterLog = {
     userId,
-    date: today,
+    date: localToday,
     amount,
   };
 

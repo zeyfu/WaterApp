@@ -9,9 +9,8 @@ import {
 } from "firebase/firestore";
 import { useEffect, useState } from "react";
 // Importe o db pronto aqui:
-import { db } from "../services/firebaseConfig"; 
+import { db } from "../services/firebaseConfig";
 import { calculateGoal, getWeather } from "../services/weather";
-
 
 export function useWaterData(user: any) {
   const [water, setWater] = useState(0);
@@ -69,15 +68,22 @@ export function useWaterData(user: any) {
       setHistory(historyArray);
 
       // 5. Água de Hoje
-      const today = new Date().toISOString().split("T")[0];
-      setWater(grouped[today] || 0);
+      const now = new Date();
+      const offset = now.getTimezoneOffset() * 60000; // compensação de fuso
+      const localISODate = new Date(now.getTime() - offset)
+        .toISOString()
+        .split("T")[0];
+
+      setWater(grouped[localISODate] || 0);
 
       // 6. Cálculo de Streak (Sequência Atual)
       let s = 0;
       let d = new Date();
 
+      const todayStr = localISODate;
+
       // Se não bateu a meta hoje, verificamos se a sequência está viva por ontem
-      if ((grouped[today] || 0) < finalGoal) {
+      if ((grouped[todayStr] || 0) < finalGoal) {
         d.setDate(d.getDate() - 1);
       }
 

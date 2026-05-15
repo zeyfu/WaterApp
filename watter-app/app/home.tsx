@@ -4,23 +4,28 @@ import { useRouter } from "expo-router";
 import { onAuthStateChanged, User } from "firebase/auth";
 import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   ScrollView,
   StatusBar,
-  StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  Alert,
 } from "react-native";
+
+// Estilos e Temas
+import { COLORS } from "../src/styles/theme";
+import { styles } from "./styles/homeStyles";
 
 // Serviços e Hooks
 import { useWaterData } from "../src/hooks/useWaterData";
 import { auth } from "../src/services/auth";
 import { addWaterLog } from "../src/services/firestore";
-import { 
-  requestNotificationPermissions, 
-  getNotificationSettings, 
-  scheduleWaterNotifications 
+import {
+  getNotificationSettings,
+  requestNotificationPermissions,
+  saveNotificationSettings,
+  scheduleWaterNotifications,
 } from "../src/services/notifications";
 
 // Componentes
@@ -35,9 +40,11 @@ import WaterGlass from "../src/components/WaterGlass";
 export default function Home() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [customAmount, setCustomAmount] = useState("");
   const [historyExpanded, setHistoryExpanded] = useState(false);
+  const [notificationsActive, setNotificationsActive] = useState(true);
 
   const {
     water,
@@ -53,13 +60,14 @@ export default function Home() {
   // 1. Monitorar Autenticação
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser) setUser(currentUser);
-      else router.replace("/" as any);
+      setUser(currentUser);
+      setAuthLoading(false);
+      if (!currentUser) router.replace("/" as any);
     });
     return unsubscribe;
   }, []);
 
-  // 2. Sincronizar Notificações (Ao abrir ou quando os dados mudarem)
+  // 2. Sincronizar Notificações
   useEffect(() => {
     async function syncNotifications() {
       if (user && currentGoal > 0) {
@@ -68,9 +76,8 @@ export default function Home() {
           if (hasPermission) {
             const settings = await getNotificationSettings(user.uid);
             if (settings) {
-              // Se a água atual já atingiu a meta, passa 'true' para silenciar
-              const reached = water >= currentGoal;
-              await scheduleWaterNotifications(settings, reached);
+              setNotificationsActive(settings.enabled);
+              await scheduleWaterNotifications(settings, water >= currentGoal);
             }
           }
         } catch (error) {
@@ -81,36 +88,56 @@ export default function Home() {
     syncNotifications();
   }, [user, water, currentGoal]);
 
-  // 3. Adicionar Água com Lógica de Notificação
+  // 3. Controle do Sino
+  const handleToggleNotifications = async () => {
+    if (!user) return;
+    const newStatus = !notificationsActive;
+    setNotificationsActive(newStatus);
+    try {
+      const settings = await getNotificationSettings(user.uid);
+      const updatedSettings = {
+        enabled: newStatus,
+        interval: settings?.interval || 60,
+        sleepMode: settings?.sleepMode ?? true,
+      };
+      await saveNotificationSettings(user.uid, updatedSettings);
+      await scheduleWaterNotifications(updatedSettings, water >= currentGoal);
+    } catch (error) {
+      setNotificationsActive(!newStatus);
+    }
+  };
+
+  // 4. Lógica de Beber Água
   const addWaterAmount = async (amount: number) => {
     if (!user) return;
     try {
       await addWaterLog(user.uid, amount);
-      
-      // Cálculo imediato para o check de meta
       const newTotal = water + amount;
       setWater(newTotal);
-
-      // Atualiza o estado das notificações imediatamente após beber
       const settings = await getNotificationSettings(user.uid);
       if (settings) {
         const reached = newTotal >= currentGoal;
         await scheduleWaterNotifications(settings, reached);
-        
         if (reached && water < currentGoal) {
           Alert.alert("Meta Atingida! 🎯", "Lembretes pausados. Bom descanso!");
         }
       }
-
       setModalVisible(false);
       refresh();
     } catch (error) {
-      console.error(error);
       Alert.alert("Erro", "Não foi possível registrar a água.");
     }
   };
 
   const percentage = Math.min((water / currentGoal) * 100, 100);
+
+  if (authLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </View>
+    );
+  }
 
   if (!user) return null;
 
@@ -118,20 +145,22 @@ export default function Home() {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
       <LinearGradient
-        colors={["#B7D0F5", "#8FB8EE", "#78A6E5"]}
+        colors={COLORS.backgroundGradient as any}
         style={styles.background}
       >
         <View style={styles.content}>
           <HomeTop
             onProfilePress={() => router.push("/profile" as any)}
             onLogoutPress={() => auth.signOut()}
+            onNotificationPress={handleToggleNotifications}
+            notificationsActive={notificationsActive}
+            isGoalReached={water >= currentGoal}
           />
 
           <ScrollView
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 100 }}
           >
-            {/* HERO CARD */}
             <View style={styles.heroCard}>
               <View style={styles.glassHeader}>
                 <WaterGlass percentage={percentage} />
@@ -182,7 +211,7 @@ export default function Home() {
               <Ionicons
                 name={historyExpanded ? "chevron-up" : "chevron-down"}
                 size={22}
-                color="#1C4A99"
+                color={COLORS.primary}
               />
             </TouchableOpacity>
 
@@ -211,68 +240,3 @@ export default function Home() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  background: { flex: 1 },
-  content: { flex: 1, paddingHorizontal: 20, paddingTop: 40 },
-  heroCard: {
-    backgroundColor: "rgba(255,255,255,0.25)",
-    borderRadius: 35,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.4)",
-    marginTop: 10,
-    marginBottom: 20,
-  },
-  glassHeader: { alignItems: "center", marginBottom: 20 },
-  tempBadge: {
-    backgroundColor: "rgba(255,255,255,0.4)",
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 20,
-    marginTop: 10,
-  },
-  tempText: { color: "#1C4A99", fontWeight: "700", fontSize: 14 },
-  integratedStats: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.2)",
-    paddingTop: 20,
-    paddingBottom: 15,
-  },
-  statBox: { alignItems: "center" },
-  statValue: { fontSize: 18, fontWeight: "800", color: "#1C4A99" },
-  statLabel: { fontSize: 12, color: "#5A7FB5", fontWeight: "600" },
-  vDivider: { width: 1, height: 25, backgroundColor: "rgba(255,255,255,0.3)" },
-  integratedProgress: {
-    marginTop: 10,
-    paddingTop: 15,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.1)",
-  },
-  progressStatus: {
-    textAlign: "center",
-    color: "#1C4A99",
-    fontWeight: "700",
-    marginTop: 8,
-    fontSize: 13,
-  },
-  historyHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 15,
-    paddingHorizontal: 10,
-    backgroundColor: "rgba(255,255,255,0.3)",
-    borderRadius: 20,
-    marginBottom: 10,
-  },
-  sectionTitle: { fontSize: 18, fontWeight: "800", color: "#1C4A99" },
-  historyContainer: {
-    marginTop: 5,
-    paddingBottom: 20,
-  },
-});

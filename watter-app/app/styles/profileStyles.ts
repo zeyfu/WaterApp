@@ -1,0 +1,95 @@
+import { StyleSheet } from "react-native";
+import { COLORS } from "../../src/styles/theme";
+
+export const styles = StyleSheet.create({
+  container: { flex: 1 },
+  loading: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#B7D0F5",
+  },
+  loadingText: { color: COLORS.primary, fontWeight: "700", marginTop: 10 },
+  scrollContent: { paddingHorizontal: 20, paddingTop: 50, paddingBottom: 60 },
+  row: { flexDirection: "row", justifyContent: "space-between" },
+  column: { width: "48%" },
+
+  dropoutHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.8)",
+    padding: 20,
+    borderRadius: 22,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.4)",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+  },
+  dropoutTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: COLORS.primary,
+  },
+
+  glassCardInside: {
+    backgroundColor: "rgba(255,255,255,0.6)",
+    padding: 20,
+    borderRadius: 22,
+    marginBottom: 15,
+    marginTop: -5,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
+  },
+
+  saveButton: {
+    backgroundColor: COLORS.primary,
+    padding: 16,
+    borderRadius: 16,
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: 10,
+    elevation: 3,
+  },
+  saveButtonText: { color: "white", fontWeight: "bold", fontSize: 16 },
+
+  dangerZone: {
+    marginTop: 40,
+    alignItems: "center",
+    borderTopWidth: 1,
+    borderTopColor: "rgba(225, 29, 72, 0.1)",
+    paddingTop: 20,
+  },
+  deleteButtonModern: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#E11D48",
+    paddingVertical: 14,
+    paddingHorizontal: 30,
+    borderRadius: 18,
+    borderWidth: 0,
+    shadowColor: "#E11D48",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  deleteButtonTextModern: {
+    color: "#FFFFFF",
+    fontWeight: "800",
+    marginLeft: 10,
+    fontSize: 15,
+  },
+  dangerNote: {
+    color: "#f9f5f6",
+    fontSize: 11,
+    marginTop: 8,
+    opacity: 0.8,
+  },
+});

@@ -1,11 +1,16 @@
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { 
-  initializeAuth, 
-  getAuth, 
-  getReactNativePersistence 
-} from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
 import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
+import { getApp, getApps, initializeApp } from "firebase/app";
+import {
+  Auth,
+  getAuth,
+  getReactNativePersistence,
+  initializeAuth,
+} from "firebase/auth";
+import {
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+} from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: "AIzaSyB7jSKKxgreHgJjeFFZ6whFSfiUBkwR1dQ",
@@ -17,10 +22,11 @@ const firebaseConfig = {
   measurementId: "G-DVM09VS05T",
 };
 
-
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-let auth;
+// 2. Tipagem explícita da variável auth
+let auth: Auth;
+
 try {
   auth = initializeAuth(app, {
     persistence: getReactNativePersistence(ReactNativeAsyncStorage),
@@ -29,6 +35,11 @@ try {
   auth = getAuth(app);
 }
 
-const db = getFirestore(app);
+const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager(),
+  }),
+});
 
 export { app, auth, db };
+

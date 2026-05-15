@@ -1,9 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
+import Checkbox from "expo-checkbox";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { sendPasswordResetEmail } from "firebase/auth";
 import React, { useState } from "react";
-import Checkbox from 'expo-checkbox'; // Lembre de rodar: npx expo install expo-checkbox
 import {
   ActivityIndicator,
   Alert,
@@ -23,8 +23,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  
-  // NOVO ESTADO: Manter conectado
+
   const [rememberMe, setRememberMe] = useState(true);
 
   const handleLogin = async () => {
@@ -51,7 +50,8 @@ export default function Login() {
     } catch (error: any) {
       setLoading(false);
       let message = "Erro ao entrar.";
-      if (error.code === "auth/user-not-found") message = "Usuário não encontrado.";
+      if (error.code === "auth/user-not-found")
+        message = "Usuário não encontrado.";
       if (error.code === "auth/wrong-password") message = "Senha incorreta.";
 
       Alert.alert("Erro", message);
@@ -60,7 +60,10 @@ export default function Login() {
 
   const handleForgotPassword = async () => {
     if (!email) {
-      Alert.alert("Redefinir Senha", "Digite seu e-mail no campo acima primeiro.");
+      Alert.alert(
+        "Redefinir Senha",
+        "Digite seu e-mail no campo acima primeiro.",
+      );
       return;
     }
     try {
@@ -72,9 +75,15 @@ export default function Login() {
   };
 
   return (
-    <LinearGradient colors={["#B7D0F5", "#8FB8EE", "#78A6E5"]} style={styles.container}>
+    <LinearGradient
+      colors={["#B7D0F5", "#8FB8EE", "#78A6E5"]}
+      style={styles.container}
+    >
       <View style={styles.glassCard}>
-        <Image source={require("../assets/images/logo.png")} style={styles.logo} />
+        <Image
+          source={require("../assets/images/logo.png")}
+          style={styles.logo}
+        />
         <Text style={styles.subtitle}>Hidrate-se melhor todos os dias</Text>
 
         <TextInput
@@ -95,19 +104,25 @@ export default function Login() {
             value={password}
             style={[styles.input, { flex: 1, marginBottom: 0 }]}
           />
-          <TouchableOpacity style={styles.eyeIcon} onPress={() => setShowPassword(!showPassword)}>
-            <Ionicons name={showPassword ? "eye-off" : "eye"} size={22} color="#1C4A99" />
+          <TouchableOpacity
+            style={styles.eyeIcon}
+            onPress={() => setShowPassword(!showPassword)}
+          >
+            <Ionicons
+              name={showPassword ? "eye-off" : "eye"}
+              size={22}
+              color="#1C4A99"
+            />
           </TouchableOpacity>
         </View>
 
-        {/* --- NOVO: CHECKBOX MANTER CONECTADO --- */}
         <View style={styles.rememberAndForgotRow}>
           <View style={styles.rememberContainer}>
             <Checkbox
               style={styles.checkbox}
               value={rememberMe}
               onValueChange={setRememberMe}
-              color={rememberMe ? '#1C4A99' : undefined}
+              color={rememberMe ? "#1C4A99" : undefined}
             />
             <Text style={styles.rememberText}>Lembrar-me</Text>
           </View>
@@ -178,21 +193,23 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     borderRadius: 16,
     overflow: "hidden",
-    marginBottom: 15, // Ajustado para dar espaço ao checkbox
+    marginBottom: 15,
   },
   eyeIcon: { paddingHorizontal: 15 },
-  
-  // Estilos da linha de "Manter Conectado" e "Esqueci a Senha"
+
   rememberAndForgotRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 10,
     marginBottom: 25,
-    paddingHorizontal: 5,
+    paddingHorizontal: 2,
   },
   rememberContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    minWidth: 120,
   },
   checkbox: {
     width: 18,
@@ -205,10 +222,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
-  forgotText: { 
-    color: "#1C4A99", 
-    fontSize: 14, 
-    fontWeight: "600" 
+  forgotText: {
+    color: "#163B7A",
+    fontSize: 14,
+    fontWeight: "700",
+    paddingVertical: 5,
   },
 
   buttonPrimary: {
