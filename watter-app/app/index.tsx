@@ -3,6 +3,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { sendPasswordResetEmail } from "firebase/auth";
 import React, { useState } from "react";
+import Checkbox from 'expo-checkbox'; // Lembre de rodar: npx expo install expo-checkbox
 import {
   ActivityIndicator,
   Alert,
@@ -22,6 +23,9 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  
+  // NOVO ESTADO: Manter conectado
+  const [rememberMe, setRememberMe] = useState(true);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -34,7 +38,6 @@ export default function Login() {
       const userCredential = await loginUser(email.trim(), password);
       const user = userCredential.user;
 
-      // TRAVA DE SEGURANÇA: Só entra se validou o e-mail
       if (!user.emailVerified) {
         Alert.alert(
           "E-mail não verificado",
@@ -48,8 +51,7 @@ export default function Login() {
     } catch (error: any) {
       setLoading(false);
       let message = "Erro ao entrar.";
-      if (error.code === "auth/user-not-found")
-        message = "Usuário não encontrado.";
+      if (error.code === "auth/user-not-found") message = "Usuário não encontrado.";
       if (error.code === "auth/wrong-password") message = "Senha incorreta.";
 
       Alert.alert("Erro", message);
@@ -58,39 +60,23 @@ export default function Login() {
 
   const handleForgotPassword = async () => {
     if (!email) {
-      Alert.alert(
-        "Redefinir Senha",
-        "Digite seu e-mail no campo acima primeiro.",
-      );
+      Alert.alert("Redefinir Senha", "Digite seu e-mail no campo acima primeiro.");
       return;
     }
-
     try {
       await sendPasswordResetEmail(auth, email.trim());
-      Alert.alert(
-        "Sucesso",
-        "E-mail de redefinição enviado! Verifique sua caixa de entrada.",
-      );
+      Alert.alert("Sucesso", "E-mail de redefinição enviado!");
     } catch (error: any) {
       Alert.alert("Erro", "Não conseguimos enviar o e-mail de recuperação.");
     }
   };
 
   return (
-    <LinearGradient
-      colors={["#B7D0F5", "#8FB8EE", "#78A6E5"]}
-      style={styles.container}
-    >
+    <LinearGradient colors={["#B7D0F5", "#8FB8EE", "#78A6E5"]} style={styles.container}>
       <View style={styles.glassCard}>
-        {/* LOGO */}
-        <Image
-          source={require("../assets/images/logo.png")}
-          style={styles.logo}
-        />
-
+        <Image source={require("../assets/images/logo.png")} style={styles.logo} />
         <Text style={styles.subtitle}>Hidrate-se melhor todos os dias</Text>
 
-        {/* INPUT EMAIL */}
         <TextInput
           placeholder="Email"
           placeholderTextColor="#5A7FB5"
@@ -100,7 +86,6 @@ export default function Login() {
           style={styles.input}
         />
 
-        {/* INPUT SENHA COM OLHINHO */}
         <View style={styles.passwordContainer}>
           <TextInput
             placeholder="Senha"
@@ -110,27 +95,28 @@ export default function Login() {
             value={password}
             style={[styles.input, { flex: 1, marginBottom: 0 }]}
           />
-          <TouchableOpacity
-            style={styles.eyeIcon}
-            onPress={() => setShowPassword(!showPassword)}
-          >
-            <Ionicons
-              name={showPassword ? "eye-off" : "eye"}
-              size={22}
-              color="#1C4A99"
-            />
+          <TouchableOpacity style={styles.eyeIcon} onPress={() => setShowPassword(!showPassword)}>
+            <Ionicons name={showPassword ? "eye-off" : "eye"} size={22} color="#1C4A99" />
           </TouchableOpacity>
         </View>
 
-        {/* ESQUECI A SENHA */}
-        <TouchableOpacity
-          onPress={handleForgotPassword}
-          style={styles.forgotBtn}
-        >
-          <Text style={styles.forgotText}>Esqueci minha senha</Text>
-        </TouchableOpacity>
+        {/* --- NOVO: CHECKBOX MANTER CONECTADO --- */}
+        <View style={styles.rememberAndForgotRow}>
+          <View style={styles.rememberContainer}>
+            <Checkbox
+              style={styles.checkbox}
+              value={rememberMe}
+              onValueChange={setRememberMe}
+              color={rememberMe ? '#1C4A99' : undefined}
+            />
+            <Text style={styles.rememberText}>Lembrar-me</Text>
+          </View>
 
-        {/* BOTÕES */}
+          <TouchableOpacity onPress={handleForgotPassword}>
+            <Text style={styles.forgotText}>Esqueci minha senha</Text>
+          </TouchableOpacity>
+        </View>
+
         <TouchableOpacity
           onPress={handleLogin}
           style={[styles.buttonPrimary, loading && { opacity: 0.7 }]}
@@ -192,11 +178,39 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     borderRadius: 16,
     overflow: "hidden",
-    marginBottom: 5,
+    marginBottom: 15, // Ajustado para dar espaço ao checkbox
   },
   eyeIcon: { paddingHorizontal: 15 },
-  forgotBtn: { alignSelf: "flex-end", marginBottom: 20, marginRight: 5 },
-  forgotText: { color: "#1C4A99", fontSize: 14, fontWeight: "600" },
+  
+  // Estilos da linha de "Manter Conectado" e "Esqueci a Senha"
+  rememberAndForgotRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 25,
+    paddingHorizontal: 5,
+  },
+  rememberContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  checkbox: {
+    width: 18,
+    height: 18,
+    borderRadius: 4,
+  },
+  rememberText: {
+    marginLeft: 8,
+    color: "#1C4A99",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  forgotText: { 
+    color: "#1C4A99", 
+    fontSize: 14, 
+    fontWeight: "600" 
+  },
+
   buttonPrimary: {
     backgroundColor: "#1C4A99",
     padding: 16,

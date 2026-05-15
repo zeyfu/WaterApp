@@ -3,16 +3,15 @@ import {
   doc,
   getDoc,
   getDocs,
-  getFirestore,
   query,
   updateDoc,
   where,
 } from "firebase/firestore";
 import { useEffect, useState } from "react";
-import { app } from "../services/firebaseConfig";
+// Importe o db pronto aqui:
+import { db } from "../services/firebaseConfig"; 
 import { calculateGoal, getWeather } from "../services/weather";
 
-const db = getFirestore(app);
 
 export function useWaterData(user: any) {
   const [water, setWater] = useState(0);
