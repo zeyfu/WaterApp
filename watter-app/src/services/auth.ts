@@ -1,13 +1,15 @@
 import {
   createUserWithEmailAndPassword,
-  getAuth,
   signInWithEmailAndPassword,
   UserCredential,
+  Auth
 } from "firebase/auth";
 
-import { app } from "./firebaseConfig";
+// Importamos o auth do seu arquivo de configuração
+import * as firebaseConfig from "./firebaseConfig"; 
 
-const auth = getAuth(app);
+// Aqui a gente força o tipo explicitamente para matar o erro de 'any'
+const auth = firebaseConfig.auth as Auth;
 
 // 📝 cadastro
 export const registerUser = (
@@ -26,4 +28,3 @@ export const loginUser = (
 };
 
 export { auth };
-

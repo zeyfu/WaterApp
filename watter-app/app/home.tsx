@@ -10,12 +10,18 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Alert,
 } from "react-native";
 
 // Serviços e Hooks
 import { useWaterData } from "../src/hooks/useWaterData";
 import { auth } from "../src/services/auth";
 import { addWaterLog } from "../src/services/firestore";
+import { 
+  requestNotificationPermissions, 
+  getNotificationSettings, 
+  scheduleWaterNotifications 
+} from "../src/services/notifications";
 
 // Componentes
 import { AddWaterFAB } from "../src/components/AddWaterFAB";
@@ -31,8 +37,6 @@ export default function Home() {
   const [user, setUser] = useState<User | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [customAmount, setCustomAmount] = useState("");
-
-  // ESTADO PARA O DROPOUT DO HISTÓRICO
   const [historyExpanded, setHistoryExpanded] = useState(false);
 
   const {
@@ -46,6 +50,7 @@ export default function Home() {
     refresh,
   } = useWaterData(user);
 
+  // 1. Monitorar Autenticação
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) setUser(currentUser);
@@ -54,15 +59,54 @@ export default function Home() {
     return unsubscribe;
   }, []);
 
+  // 2. Sincronizar Notificações (Ao abrir ou quando os dados mudarem)
+  useEffect(() => {
+    async function syncNotifications() {
+      if (user && currentGoal > 0) {
+        try {
+          const hasPermission = await requestNotificationPermissions();
+          if (hasPermission) {
+            const settings = await getNotificationSettings(user.uid);
+            if (settings) {
+              // Se a água atual já atingiu a meta, passa 'true' para silenciar
+              const reached = water >= currentGoal;
+              await scheduleWaterNotifications(settings, reached);
+            }
+          }
+        } catch (error) {
+          console.error("Erro ao sincronizar notificações:", error);
+        }
+      }
+    }
+    syncNotifications();
+  }, [user, water, currentGoal]);
+
+  // 3. Adicionar Água com Lógica de Notificação
   const addWaterAmount = async (amount: number) => {
     if (!user) return;
     try {
       await addWaterLog(user.uid, amount);
-      setWater((prev) => prev + amount);
+      
+      // Cálculo imediato para o check de meta
+      const newTotal = water + amount;
+      setWater(newTotal);
+
+      // Atualiza o estado das notificações imediatamente após beber
+      const settings = await getNotificationSettings(user.uid);
+      if (settings) {
+        const reached = newTotal >= currentGoal;
+        await scheduleWaterNotifications(settings, reached);
+        
+        if (reached && water < currentGoal) {
+          Alert.alert("Meta Atingida! 🎯", "Lembretes pausados. Bom descanso!");
+        }
+      }
+
       setModalVisible(false);
       refresh();
     } catch (error) {
       console.error(error);
+      Alert.alert("Erro", "Não foi possível registrar a água.");
     }
   };
 
@@ -87,7 +131,7 @@ export default function Home() {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 100 }}
           >
-            {/* HERO CARD UNIFICADO */}
+            {/* HERO CARD */}
             <View style={styles.heroCard}>
               <View style={styles.glassHeader}>
                 <WaterGlass percentage={percentage} />
@@ -117,7 +161,6 @@ export default function Home() {
                 </View>
               </View>
 
-              {/* BARRA DE PROGRESSO INTEGRADA DENTRO DO HERO CARD */}
               <View style={styles.integratedProgress}>
                 <ProgressBar percentage={percentage} />
                 <Text style={styles.progressStatus}>
@@ -128,10 +171,8 @@ export default function Home() {
               </View>
             </View>
 
-            {/* GAMIFICAÇÃO */}
             <StreakBadge streak={streak} bestStreak={bestStreak} />
 
-            {/* HISTÓRICO COM DROPOUT (ACCORDION) */}
             <TouchableOpacity
               style={styles.historyHeader}
               onPress={() => setHistoryExpanded(!historyExpanded)}
@@ -145,7 +186,6 @@ export default function Home() {
               />
             </TouchableOpacity>
 
-            {/* RENDERIZAÇÃO CONDICIONAL DO HISTÓRICO */}
             {historyExpanded && (
               <View style={styles.historyContainer}>
                 <HistoryCard history={history} currentGoal={currentGoal} />
@@ -176,7 +216,6 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   background: { flex: 1 },
   content: { flex: 1, paddingHorizontal: 20, paddingTop: 40 },
-
   heroCard: {
     backgroundColor: "rgba(255,255,255,0.25)",
     borderRadius: 35,
@@ -195,7 +234,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   tempText: { color: "#1C4A99", fontWeight: "700", fontSize: 14 },
-
   integratedStats: {
     flexDirection: "row",
     justifyContent: "space-around",
@@ -209,7 +247,6 @@ const styles = StyleSheet.create({
   statValue: { fontSize: 18, fontWeight: "800", color: "#1C4A99" },
   statLabel: { fontSize: 12, color: "#5A7FB5", fontWeight: "600" },
   vDivider: { width: 1, height: 25, backgroundColor: "rgba(255,255,255,0.3)" },
-
   integratedProgress: {
     marginTop: 10,
     paddingTop: 15,
@@ -223,7 +260,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 13,
   },
-
   historyHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
