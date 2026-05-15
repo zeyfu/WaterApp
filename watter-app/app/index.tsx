@@ -23,7 +23,6 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-
   const [rememberMe, setRememberMe] = useState(true);
 
   const handleLogin = async () => {
@@ -86,6 +85,7 @@ export default function Login() {
         />
         <Text style={styles.subtitle}>Hidrate-se melhor todos os dias</Text>
 
+        {/* Inputs */}
         <TextInput
           placeholder="Email"
           placeholderTextColor="#5A7FB5"
@@ -116,6 +116,7 @@ export default function Login() {
           </TouchableOpacity>
         </View>
 
+        {/* Linha Lembrar-me / Esqueci Senha */}
         <View style={styles.rememberAndForgotRow}>
           <View style={styles.rememberContainer}>
             <Checkbox
@@ -132,6 +133,7 @@ export default function Login() {
           </TouchableOpacity>
         </View>
 
+        {/* Botões de Ação */}
         <TouchableOpacity
           onPress={handleLogin}
           style={[styles.buttonPrimary, loading && { opacity: 0.7 }]}
@@ -149,6 +151,19 @@ export default function Login() {
           style={styles.buttonSecondary}
         >
           <Text style={styles.buttonText}>CRIAR CONTA</Text>
+        </TouchableOpacity>
+
+        {/* LINK PARA TERMOS DE USO */}
+        <TouchableOpacity
+          onPress={() => router.push("/terms" as any)}
+          style={styles.termsLink}
+        >
+          <Text style={styles.termsText}>
+            Ao entrar, você concorda com nossos{"\n"}
+            <Text style={styles.termsUnderline}>
+              Termos de Uso e Privacidade
+            </Text>
+          </Text>
         </TouchableOpacity>
       </View>
     </LinearGradient>
@@ -196,12 +211,11 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   eyeIcon: { paddingHorizontal: 15 },
-
   rememberAndForgotRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    flexWrap: "wrap",
+    flexWrap: "wrap", // Essencial para telas pequenas
     gap: 10,
     marginBottom: 25,
     paddingHorizontal: 2,
@@ -211,11 +225,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     minWidth: 120,
   },
-  checkbox: {
-    width: 18,
-    height: 18,
-    borderRadius: 4,
-  },
+  checkbox: { width: 18, height: 18, borderRadius: 4 },
   rememberText: {
     marginLeft: 8,
     color: "#1C4A99",
@@ -228,7 +238,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     paddingVertical: 5,
   },
-
   buttonPrimary: {
     backgroundColor: "#1C4A99",
     padding: 16,
@@ -250,4 +259,15 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 16,
   },
+
+  // Estilos dos Termos
+  termsLink: { marginTop: 20, alignItems: "center" },
+  termsText: {
+    color: "#1C4A99",
+    fontSize: 12,
+    opacity: 0.7,
+    textAlign: "center",
+    lineHeight: 18,
+  },
+  termsUnderline: { textDecorationLine: "underline", fontWeight: "700" },
 });
