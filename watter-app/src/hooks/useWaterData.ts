@@ -8,24 +8,55 @@ import {
   where,
 } from "firebase/firestore";
 import { useEffect, useState } from "react";
-// Importe o db pronto aqui:
 import { db } from "../services/firebaseConfig";
 import { calculateGoal, getWeather } from "../services/weather";
 
-export function useWaterData(user: any) {
-  const [water, setWater] = useState(0);
-  const [goal, setGoal] = useState(2000);
-  const [goalAdjusted, setGoalAdjusted] = useState(0);
-  const [history, setHistory] = useState<any[]>([]);
-  const [streak, setStreak] = useState(0);
-  const [bestStreak, setBestStreak] = useState(0); // Estado para o Recorde
+interface FirebaseUser {
+  uid: string;
+}
+
+interface WaterLog {
+  userId: string;
+  date: string;
+  amount: number;
+  currentGoal?: number;
+}
+
+interface HistoryItem {
+  date: string;
+  total: number;
+  goal: number;
+}
+
+interface GroupedLogs {
+  [date: string]: {
+    total: number;
+    goal: number;
+  };
+}
+
+/**
+ * Hook customizado para gerenciamento, cálculo estatístico e sincronização
+ * dos registros de ingestão de água do usuário com o Firestore.
+ */
+export function useWaterData(user: FirebaseUser | null) {
+  const [water, setWater] = useState<number>(0);
+  const [goal, setGoal] = useState<number>(2000);
+  const [goalAdjusted, setGoalAdjusted] = useState<number>(0);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [streak, setStreak] = useState<number>(0);
+  const [bestStreak, setBestStreak] = useState<number>(0);
   const [temperature, setTemperature] = useState<number | null>(null);
 
+  /**
+   * Consolida os dados operacionais da Home buscando informações biométricas,
+   * logs históricos e fatores meteorológicos locais.
+   */
   const fetchData = async () => {
     if (!user) return;
 
     try {
-      // 1. Dados do Usuário (Meta e Recorde)
+      // 1. Recuperação de Metas Básicas e Recordes do Usuário
       const userRef = doc(db, "users", user.uid);
       const docSnap = await getDoc(userRef);
 
@@ -35,28 +66,28 @@ export function useWaterData(user: any) {
       if (docSnap.exists()) {
         const userData = docSnap.data();
         userGoal = userData.goal || 2000;
-        recordInDb = userData.bestStreak || 0; // Busca o recorde salvo
+        recordInDb = userData.bestStreak || 0;
       }
       setGoal(userGoal);
       setBestStreak(recordInDb);
 
-      // 2. Clima
+      // 2. Análise Climatológica e Ajuste Dinâmico de Meta
       const temp = await getWeather();
       setTemperature(temp);
       const finalGoal = calculateGoal(userGoal, temp);
       setGoalAdjusted(finalGoal);
 
-      // 3. Logs do Firebase
+      // 3. Captura dos Registros de Ingestão Diários
       const q = query(
         collection(db, "waterLogs"),
         where("userId", "==", user.uid),
       );
       const querySnapshot = await getDocs(q);
-      const logs: any[] = [];
-      querySnapshot.forEach((d) => logs.push(d.data()));
+      const logs: WaterLog[] = [];
+      querySnapshot.forEach((d) => logs.push(d.data() as WaterLog));
 
-      // 4. Agrupamento e Histórico
-      const grouped = logs.reduce((acc: any, log: any) => {
+      // 4. Agrupamento de Métricas por Chave de Data
+      const grouped = logs.reduce((acc: GroupedLogs, log: WaterLog) => {
         if (!acc[log.date]) {
           acc[log.date] = { total: 0, goal: log.currentGoal || finalGoal };
         }
@@ -64,7 +95,8 @@ export function useWaterData(user: any) {
         return acc;
       }, {});
 
-      const historyArray = Object.keys(grouped)
+      // Convertendo o mapa agrupado em array ordenado de forma decrescente
+      const historyArray: HistoryItem[] = Object.keys(grouped)
         .map((date) => ({
           date,
           total: grouped[date].total,
@@ -74,44 +106,44 @@ export function useWaterData(user: any) {
 
       setHistory(historyArray);
 
-      // 5. Água de Hoje
+      // 5. Ajuste ISO de Fuso Horário para captura da Data Local Fluida
       const now = new Date();
       const offset = now.getTimezoneOffset() * 60000;
-      const localISODate = new Date(now.getTime() - offset)
+      const todayStr = new Date(now.getTime() - offset)
         .toISOString()
         .split("T")[0];
 
-      const todayStr = localISODate;
       setWater(grouped[todayStr]?.total || 0);
 
-      // 6. Cálculo de Streak (Sequência Atual)
-      let s = 0;
-      let d = new Date();
+      // 6. Algorítmo de Varredura Regressiva para Cálculo da Sequência (Streak)
+      let currentStreak = 0;
+      const dayTracker = new Date();
 
+      // Caso a meta de hoje ainda não tenha sido atingida, a contagem avalia a partir de ontem
       if ((grouped[todayStr]?.total || 0) < finalGoal) {
-        d.setDate(d.getDate() - 1);
+        dayTracker.setDate(dayTracker.getDate() - 1);
       }
 
       while (true) {
-        const ds = d.toISOString().split("T")[0];
-        const targetGoal = grouped[ds]?.goal || finalGoal; // Usa a meta daquele dia específico
+        const dateKey = dayTracker.toISOString().split("T")[0];
+        const targetGoal = grouped[dateKey]?.goal || finalGoal;
 
-        if (grouped[ds]?.total >= targetGoal) {
-          s++;
-          d.setDate(d.getDate() - 1);
+        if (grouped[dateKey]?.total >= targetGoal) {
+          currentStreak++;
+          dayTracker.setDate(dayTracker.getDate() - 1);
         } else {
           break;
         }
       }
-      setStreak(s);
+      setStreak(currentStreak);
 
-      // 7. Atualizar Recorde no Firestore (Se o atual for maior que o salvo)
-      if (s > recordInDb) {
-        await updateDoc(userRef, { bestStreak: s });
-        setBestStreak(s);
+      // 7. Atualização Assíncrona de Recorde Histórico de Consistência
+      if (currentStreak > recordInDb) {
+        await updateDoc(userRef, { bestStreak: currentStreak });
+        setBestStreak(currentStreak);
       }
-    } catch (e) {
-      console.error("Erro no useWaterData:", e);
+    } catch (error) {
+      console.error("Erro na execução do serviço useWaterData:", error);
     }
   };
 
@@ -124,7 +156,7 @@ export function useWaterData(user: any) {
     currentGoal: goalAdjusted || goal,
     history,
     streak,
-    bestStreak, // Retorna o recorde para a Home
+    bestStreak,
     temperature,
     refresh: fetchData,
     setWater,

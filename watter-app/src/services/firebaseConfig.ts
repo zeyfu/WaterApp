@@ -22,19 +22,29 @@ const firebaseConfig = {
   measurementId: "G-DVM09VS05T",
 };
 
+// Inicialização do núcleo do Firebase Application Singleton
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-// 2. Tipagem explícita da variável auth
 let auth: Auth;
 
+/**
+ * Inicialização do serviço de Autenticação com persistência nativa.
+ * Configura o AsyncStorage para reter a sessão do usuário logado no dispositivo móvel,
+ * mitigando perdas de estado ao fechar o aplicativo.
+ */
 try {
   auth = initializeAuth(app, {
     persistence: getReactNativePersistence(ReactNativeAsyncStorage),
   });
-} catch (e) {
+} catch (error) {
   auth = getAuth(app);
 }
 
+/**
+ * Inicialização do banco de dados Firestore com suporte a Cache Local Persistente.
+ * Habilita o gerenciamento de múltiplas abas/instâncias, garantindo que o app
+ * funcione offline de forma transparente e sincronize os dados ao recuperar conexão.
+ */
 const db = initializeFirestore(app, {
   localCache: persistentLocalCache({
     tabManager: persistentMultipleTabManager(),

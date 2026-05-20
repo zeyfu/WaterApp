@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { Animated, Easing, Text, View } from "react-native";
+import { Animated, Easing, StyleSheet, Text, View } from "react-native";
 import Svg, {
   Defs,
   Ellipse,
@@ -9,18 +9,27 @@ import Svg, {
   Stop,
 } from "react-native-svg";
 
+interface WaterGlassProps {
+  percentage: number;
+}
+
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedEllipse = Animated.createAnimatedComponent(Ellipse);
 
-type Props = {
-  percentage: number;
-};
-
-export default function WaterGlass({ percentage }: Props) {
+/**
+ * Componente vetorial dinâmico que renderiza um copo d'água realista.
+ * Utiliza interpolação de coordenadas SVG para simular o preenchimento,
+ * movimento oscilatório de ondas e subida de bolhas de ar.
+ */
+export default function WaterGlass({ percentage }: WaterGlassProps) {
   const animatedValue = useRef(new Animated.Value(0)).current;
   const waveAnim = useRef(new Animated.Value(0)).current;
   const bubbleAnim = useRef(new Animated.Value(0)).current;
 
+  /**
+   * Monitora e anima a transição do nível da água sempre
+   * que a porcentagem de ingestão diária for alterada.
+   */
   useEffect(() => {
     Animated.timing(animatedValue, {
       toValue: percentage,
@@ -30,8 +39,11 @@ export default function WaterGlass({ percentage }: Props) {
     }).start();
   }, [percentage]);
 
+  /**
+   * Inicializa os loops infinitos das animações de ambiente do copo
+   * (oscilação lateral da onda e subida contínua das bolhas).
+   */
   useEffect(() => {
-    // Loop das Ondas (Movimento lateral suave)
     Animated.loop(
       Animated.timing(waveAnim, {
         toValue: 1,
@@ -41,7 +53,6 @@ export default function WaterGlass({ percentage }: Props) {
       }),
     ).start();
 
-    // Loop das Bolhas
     Animated.loop(
       Animated.timing(bubbleAnim, {
         toValue: 1,
@@ -52,39 +63,41 @@ export default function WaterGlass({ percentage }: Props) {
     ).start();
   }, []);
 
-  // Lógica de expansão: O copo começa estreito na base e abre no topo
+  // Interpola a expansão do polígono da água respeitando a angulação cônica do vidro
   const waterPath = animatedValue.interpolate({
     inputRange: [0, 100],
     outputRange: [
-      "M100 220 L180 220 L180 220 L100 220 Z", // Vazio
-      "M55 50 L225 50 L192 226 L88 226 Z", // Cheio seguindo o desenho do copo
+      "M100 220 L180 220 L180 220 L100 220 Z",
+      "M55 50 L225 50 L192 226 L88 226 Z",
     ],
   });
 
+  // Interpola o deslocamento horizontal simulando o balanço da onda
   const waveMove = waveAnim.interpolate({
     inputRange: [0, 0.5, 1],
     outputRange: [-3, 3, -3],
   });
 
-  // Calcula a altura da superfície para a elipse (subida vertical)
+  // Interpola a posição vertical (eixo Y) da elipse que forma a superfície
   const surfaceY = animatedValue.interpolate({
     inputRange: [0, 100],
     outputRange: [220, 50],
   });
 
-  // Calcula a largura da superfície (aumenta conforme o copo abre)
+  // Interpola o raio horizontal (raio X) da superfície acompanhando a abertura do topo do copo
   const surfaceWidth = animatedValue.interpolate({
     inputRange: [0, 100],
     outputRange: [42, 85],
   });
 
+  // Controla o esmaecimento das bolhas próximo às extremidades do preenchimento
   const bubbleOpacity = bubbleAnim.interpolate({
     inputRange: [0, 0.2, 0.8, 1],
     outputRange: [0, 0.3, 0.2, 0],
   });
 
   return (
-    <View style={{ alignItems: "center", justifyContent: "center" }}>
+    <View style={styles.container}>
       <Svg width={280} height={260} viewBox="0 0 280 260">
         <Defs>
           <LinearGradient id="waterGradient" x1="0" y1="0" x2="0" y2="1">
@@ -98,15 +111,14 @@ export default function WaterGlass({ percentage }: Props) {
           </LinearGradient>
         </Defs>
 
-        {/* Sombra base no chão */}
+        {/* Projeção de sombra na base */}
         <Ellipse cx="140" cy="235" rx="55" ry="10" fill="rgba(0,0,0,0.05)" />
 
-        {/* CORPO DA ÁGUA (Preenchimento que expande lateralmente) */}
+        {/* Volume interno da água */}
         <AnimatedPath d={waterPath} fill="url(#waterGradient)" />
 
-        {/* ELEMENTOS INTERNOS */}
+        {/* Elementos físicos fluidos */}
         <G>
-          {/* Superfície da Água (Elipse que sobe e expande) */}
           <AnimatedEllipse
             cx={Animated.add(140, waveMove)}
             cy={surfaceY}
@@ -115,7 +127,6 @@ export default function WaterGlass({ percentage }: Props) {
             fill="#D0EEFF"
           />
 
-          {/* Bolhas Animadas */}
           <AnimatedEllipse
             cx="115"
             cy={bubbleAnim.interpolate({
@@ -140,7 +151,7 @@ export default function WaterGlass({ percentage }: Props) {
           />
         </G>
 
-        {/* O VIDRO (Traçado e preenchimento leve por cima da água) */}
+        {/* Silhueta e contorno estrutural do copo */}
         <Path
           d="M50 40 Q140 15 230 40 Q205 150 192 226 Q140 258 88 226 Z"
           fill="rgba(255, 255, 255, 0.08)"
@@ -148,13 +159,13 @@ export default function WaterGlass({ percentage }: Props) {
           strokeWidth="2.5"
         />
 
-        {/* Reflexo Lateral do Vidro */}
+        {/* Difusão de reflexo luminoso lateral */}
         <Path
           d="M65 50 Q75 140 85 210 L98 210 Q88 140 78 50 Z"
           fill="url(#glassReflex)"
         />
 
-        {/* Detalhes de Brilho Superior (Aro do Copo) */}
+        {/* Aro superior do vidro */}
         <Ellipse
           cx="140"
           cy="40"
@@ -165,7 +176,7 @@ export default function WaterGlass({ percentage }: Props) {
           fill="none"
         />
 
-        {/* Brilho no Fundo do Copo */}
+        {/* Faceta de refração do fundo do copo */}
         <Ellipse
           cx="140"
           cy="222"
@@ -178,17 +189,20 @@ export default function WaterGlass({ percentage }: Props) {
         />
       </Svg>
 
-      {/* Texto da Porcentagem centralizado */}
-      <Text
-        style={{
-          position: "absolute",
-          color: "#1C4A99",
-          fontSize: 32,
-          fontWeight: "bold",
-        }}
-      >
-        {percentage.toFixed(0)}%
-      </Text>
+      <Text style={styles.percentageText}>{percentage.toFixed(0)}%</Text>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  percentageText: {
+    position: "absolute",
+    color: "#1C4A99",
+    fontSize: 32,
+    fontWeight: "bold",
+  },
+});

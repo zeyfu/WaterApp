@@ -1,22 +1,39 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-type Props = {
+interface StreakBadgeProps {
   streak: number;
   bestStreak: number;
-};
+}
 
-export default function StreakBadge({ streak, bestStreak }: Props) {
-  const getBadgeTheme = () => {
-    // Cores mais sólidas e legíveis para o fundo
-    if (streak >= 30)
+interface BadgeTheme {
+  color: string;
+  bg: string;
+  emoji: string;
+  label: string;
+}
+
+/**
+ * Componente de gamificação que exibe a sequência de dias (streak) do usuário.
+ * Renderiza o recorde histórico e adapta dinamicamente as cores e conquistas
+ * de acordo com a consistência de metas diárias atingidas.
+ */
+export default function StreakBadge({ streak, bestStreak }: StreakBadgeProps) {
+  /**
+   * Determina a identidade visual, insígnia e título do badge
+   * com base na quantidade de dias consecutivos atuais.
+   */
+  const getBadgeTheme = (): BadgeTheme => {
+    if (streak >= 30) {
       return { color: "#A855F7", bg: "#9333EA", emoji: "👑", label: "Mestre" };
-    if (streak >= 7)
+    }
+    if (streak >= 7) {
       return { color: "#2563EB", bg: "#1D4ED8", emoji: "⚡", label: "Focado" };
-    if (streak >= 3)
+    }
+    if (streak >= 3) {
       return { color: "#EA580C", bg: "#C2410C", emoji: "🔥", label: "No Fogo" };
+    }
 
-    // Tema INICIANTE (Ajustado para um azul mais elegante e legível)
     return { color: "#0EA5E9", bg: "#0284C7", emoji: "💧", label: "Iniciante" };
   };
 
@@ -24,7 +41,7 @@ export default function StreakBadge({ streak, bestStreak }: Props) {
 
   return (
     <View style={[styles.mainCard, { backgroundColor: theme.bg }]}>
-      {/* Lado Esquerdo: Streak Atual */}
+      {/* Seção: Sequência de Dias Atual */}
       <View style={styles.section}>
         <View style={styles.iconCircle}>
           <Text style={styles.emoji}>{theme.emoji}</Text>
@@ -33,10 +50,9 @@ export default function StreakBadge({ streak, bestStreak }: Props) {
         <Text style={styles.label}>Dias Atuais</Text>
       </View>
 
-      {/* Divisor Vertical */}
       <View style={styles.divider} />
 
-      {/* Lado Direito: Recorde */}
+      {/* Seção: Recorde Histórico (Best Streak) */}
       <View style={styles.section}>
         <View style={styles.iconCircle}>
           <Text style={styles.emoji}>🏆</Text>
@@ -47,7 +63,7 @@ export default function StreakBadge({ streak, bestStreak }: Props) {
         <Text style={styles.label}>Recorde</Text>
       </View>
 
-      {/* Tag de Status Flutuante */}
+      {/* Indicador Flutuante de Categoria de Status */}
       <View style={styles.statusTag}>
         <Text style={styles.statusTagText}>{theme.label}</Text>
       </View>
@@ -58,7 +74,7 @@ export default function StreakBadge({ streak, bestStreak }: Props) {
 const styles = StyleSheet.create({
   mainCard: {
     flexDirection: "row",
-    width: "100%", // Agora ocupa toda a largura disponível na Home
+    width: "100%",
     alignSelf: "center",
     paddingVertical: 20,
     borderRadius: 25,
@@ -79,7 +95,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: "rgba(255,255,255,0.2)", // Fundo sutil para o ícone
+    backgroundColor: "rgba(255,255,255,0.2)",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 5,
@@ -90,11 +106,11 @@ const styles = StyleSheet.create({
   number: {
     fontSize: 26,
     fontWeight: "800",
-    color: "#FFFFFF", // Texto sempre branco para leitura perfeita
+    color: "#FFFFFF",
   },
   label: {
     fontSize: 12,
-    color: "rgba(255,255,255,0.8)", // Texto secundário em branco suave
+    color: "rgba(255,255,255,0.8)",
     fontWeight: "600",
   },
   divider: {
@@ -105,7 +121,7 @@ const styles = StyleSheet.create({
   statusTag: {
     position: "absolute",
     top: -10,
-    backgroundColor: "#FFFFFF", // Tag branca para destacar do fundo colorido
+    backgroundColor: "#FFFFFF",
     paddingHorizontal: 12,
     paddingVertical: 3,
     borderRadius: 10,
@@ -113,7 +129,7 @@ const styles = StyleSheet.create({
     borderColor: "rgba(0,0,0,0.05)",
   },
   statusTagText: {
-    color: "#1C4A99", // Texto da tag combinando com o tema do app
+    color: "#1C4A99",
     fontSize: 10,
     fontWeight: "bold",
     textTransform: "uppercase",

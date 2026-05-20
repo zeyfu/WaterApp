@@ -2,7 +2,7 @@
   "expo": {
     "name": "Beba+",
     "slug": "watter-app",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/logo.png",
     "scheme": "watterapp",
@@ -19,7 +19,7 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.rick.waterapp",
-      "versionCode": 2
+      "versionCode": 3
     },
     "web": {
       "output": "static",
@@ -27,7 +27,16 @@
     },
     "plugins": [
       "expo-router",
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/logo.png",
+          "color": "#1C4A99",
+          "sounds": [
+            "./src/assets/raw/waterdrop.mp3"
+          ]
+        }
+      ],
       [
         "expo-splash-screen",
         {
@@ -39,7 +48,8 @@
             "backgroundColor": "#0F172A"
           }
         }
-      ]
+      ],
+      "@react-native-google-signin/google-signin"
     ],
     "experiments": {
       "typedRoutes": true,

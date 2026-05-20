@@ -30,35 +30,51 @@ import {
 import { COLORS } from "../src/styles/theme";
 import { styles } from "./styles/profileStyles";
 
+interface UserProfileData {
+  name?: string;
+  goal?: number;
+  weight?: number;
+  age?: number;
+  gender?: string;
+  email?: string;
+}
+
 export default function Profile() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [userData, setUserData] = useState<any>(null);
 
-  // Estados dos Accordions
+  // Estados de controle de fluxo e UI
+  const [loading, setLoading] = useState(true);
+  const [userData, setUserData] = useState<UserProfileData | null>(null);
   const [showPersonalData, setShowPersonalData] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
-  // Estados dos Dados
+  // Estados dos formulários de dados pessoais
   const [name, setName] = useState("");
   const [goal, setGoal] = useState("");
   const [weight, setWeight] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
+
+  // Estados dos formulários de notificações
   const [intervalMinutes, setIntervalMinutes] = useState("60");
   const [sleepMode, setSleepMode] = useState(true);
 
+  /**
+   * Inicializa o componente buscando os dados do perfil do usuário
+   * no Firestore e suas respectivas configurações de notificação local.
+   */
   useEffect(() => {
-    const init = async () => {
+    const fetchUserData = async () => {
       const user = auth.currentUser;
       if (!user) {
-        Promise.resolve().then(() => router.replace("/" as any));
+        router.replace("/" as any);
         return;
       }
+
       try {
         const docSnap = await getDoc(doc(db, "users", user.uid));
         if (docSnap.exists()) {
-          const data = docSnap.data();
+          const data = docSnap.data() as UserProfileData;
           setUserData(data);
           setName(data.name || "");
           setGoal(String(data.goal || ""));
@@ -66,23 +82,29 @@ export default function Profile() {
           setAge(String(data.age || ""));
           setGender(data.gender || "");
         }
+
         const notif = await getNotificationSettings(user.uid);
         if (notif) {
           setIntervalMinutes(String(notif.interval));
           setSleepMode(notif.sleepMode ?? true);
         }
-      } catch (e) {
-        console.error(e);
+      } catch (error) {
+        console.error("Erro ao inicializar dados do perfil:", error);
       } finally {
         setLoading(false);
       }
     };
-    init();
+
+    fetchUserData();
   }, []);
 
+  /**
+   * Persiste as alterações dos dados biométricos e metas do usuário no Firestore.
+   */
   const handleSaveProfile = async () => {
     const user = auth.currentUser;
     if (!user) return;
+
     try {
       await updateUserData(user.uid, {
         name,
@@ -91,39 +113,50 @@ export default function Profile() {
         age: Number(age),
         gender,
       });
-      Alert.alert("Sucesso! ✨", "Dados atualizados.");
-      setShowPersonalData(false); // Fecha o dropout ao salvar
-    } catch (e) {
-      Alert.alert("Erro", "Falha ao salvar.");
+      Alert.alert("Sucesso! ✨", "Dados atualizados com sucesso.");
+      setShowPersonalData(false);
+    } catch (error) {
+      console.error("Erro ao salvar dados pessoais:", error);
+      Alert.alert("Erro", "Falha ao salvar as alterações do perfil.");
     }
   };
 
+  /**
+   * Valida as permissões do sistema operacional e agenda os novos
+   * intervalos de lembretes para ingestão de água.
+   */
   const handleSaveNotifications = async () => {
     const user = auth.currentUser;
     if (!user) return;
+
     try {
       const hasPermission = await requestNotificationPermissions();
       if (!hasPermission) return;
+
       const settings = {
         enabled: true,
         interval: Number(intervalMinutes),
         sleepMode,
       };
+
       await saveNotificationSettings(user.uid, settings);
       await scheduleWaterNotifications(settings, false);
-      Alert.alert("Configurado! 🔔", "Lembretes atualizados.");
-      setShowNotifications(false); // Fecha o dropout ao salvar
-    } catch (e) {
-      Alert.alert("Erro", "Falha ao configurar.");
+
+      Alert.alert("Configurado! 🔔", "Lembretes atualizados com sucesso.");
+      setShowNotifications(false);
+    } catch (error) {
+      console.error("Erro ao salvar configurações de notificação:", error);
+      Alert.alert("Erro", "Falha ao configurar as notificações.");
     }
   };
 
-  if (loading)
+  if (loading) {
     return (
       <View style={styles.loading}>
         <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
+  }
 
   return (
     <LinearGradient
@@ -145,7 +178,6 @@ export default function Profile() {
             }
           />
 
-          {/* Resumo visual do perfil */}
           <ProfileAvatar
             email={userData?.email}
             name={name}
@@ -154,7 +186,7 @@ export default function Profile() {
             weight={weight}
           />
 
-          {/* DROPOUT: DADOS PESSOAIS */}
+          {/* Seção: Dados Pessoais */}
           <TouchableOpacity
             style={styles.dropoutHeader}
             onPress={() => setShowPersonalData(!showPersonalData)}
@@ -175,6 +207,7 @@ export default function Profile() {
                 value={name}
                 onChangeText={setName}
               />
+
               <View style={styles.row}>
                 <ProfileInput
                   label="Peso (kg)"
@@ -193,12 +226,14 @@ export default function Profile() {
                   keyboardType="numeric"
                 />
               </View>
+
               <ProfileInput
                 label="Gênero"
                 icon="transgender-outline"
                 value={gender}
                 onChangeText={setGender}
               />
+
               <ProfileInput
                 label="Meta (ml)"
                 icon="water-outline"
@@ -206,6 +241,7 @@ export default function Profile() {
                 onChangeText={setGoal}
                 keyboardType="numeric"
               />
+
               <TouchableOpacity
                 style={styles.saveButton}
                 onPress={handleSaveProfile}
@@ -215,7 +251,7 @@ export default function Profile() {
             </View>
           )}
 
-          {/* DROPOUT: ALERTAS */}
+          {/* Seção: Alertas */}
           <TouchableOpacity
             style={[styles.dropoutHeader, { marginTop: 10 }]}
             onPress={() => setShowNotifications(!showNotifications)}
@@ -240,11 +276,13 @@ export default function Profile() {
             </View>
           )}
 
-          {/* ZONA DE PERIGO */}
+          {/* Seção de Exclusão de Conta */}
           <View style={styles.dangerZone}>
             <TouchableOpacity
               style={styles.deleteButtonModern}
-              onPress={() => Alert.alert("Atenção", "Excluir conta?")}
+              onPress={() =>
+                Alert.alert("Atenção", "Deseja realmente excluir sua conta?")
+              }
             >
               <Ionicons name="trash-outline" size={20} color={COLORS.danger} />
               <Text style={styles.deleteButtonTextModern}>

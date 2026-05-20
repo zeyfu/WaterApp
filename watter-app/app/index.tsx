@@ -15,13 +15,15 @@ import {
   View,
 } from "react-native";
 
-import { auth, loginUser } from "../src/services/auth";
+// Importação das funções do seu serviço de autenticação
+import { auth, loginUser, signInWithGoogle } from "../src/services/auth";
 
 export default function Login() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
 
@@ -54,6 +56,19 @@ export default function Login() {
       if (error.code === "auth/wrong-password") message = "Senha incorreta.";
 
       Alert.alert("Erro", message);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setGoogleLoading(true);
+    try {
+      await signInWithGoogle();
+      router.replace("/home" as any);
+    } catch (error: any) {
+      setGoogleLoading(false);
+      if (error.code !== "ASYNC_OP_IN_PROGRESS") {
+        Alert.alert("Erro", "Não foi possível entrar com o Google.");
+      }
     }
   };
 
@@ -137,7 +152,7 @@ export default function Login() {
         <TouchableOpacity
           onPress={handleLogin}
           style={[styles.buttonPrimary, loading && { opacity: 0.7 }]}
-          disabled={loading}
+          disabled={loading || googleLoading}
         >
           {loading ? (
             <ActivityIndicator color="#FFF" />
@@ -146,14 +161,36 @@ export default function Login() {
           )}
         </TouchableOpacity>
 
+        {/* Botão Google */}
+        <TouchableOpacity
+          onPress={handleGoogleLogin}
+          style={[styles.buttonGoogle, googleLoading && { opacity: 0.7 }]}
+          disabled={loading || googleLoading}
+        >
+          {googleLoading ? (
+            <ActivityIndicator color="#1C4A99" />
+          ) : (
+            <View style={styles.googleContent}>
+              <Ionicons
+                name="logo-google"
+                size={18}
+                color="#1C4A99"
+                style={{ marginRight: 10 }}
+              />
+              <Text style={styles.buttonGoogleText}>ENTRAR COM GOOGLE</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+
         <TouchableOpacity
           onPress={() => router.push("/register" as any)}
           style={styles.buttonSecondary}
+          disabled={loading || googleLoading}
         >
           <Text style={styles.buttonText}>CRIAR CONTA</Text>
         </TouchableOpacity>
 
-        {/* LINK PARA TERMOS DE USO */}
+        {/* Link para Termos de Uso */}
         <TouchableOpacity
           onPress={() => router.push("/terms" as any)}
           style={styles.termsLink}
@@ -215,7 +252,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    flexWrap: "wrap", // Essencial para telas pequenas
+    flexWrap: "wrap",
     gap: 10,
     marginBottom: 25,
     paddingHorizontal: 2,
@@ -246,6 +283,29 @@ const styles = StyleSheet.create({
     height: 55,
     justifyContent: "center",
   },
+  buttonGoogle: {
+    backgroundColor: "#FFF",
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 12,
+    height: 55,
+    justifyContent: "center",
+    borderWidth: 1.5,
+    borderColor: "#E2E8F0",
+    elevation: 1,
+  },
+  googleContent: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  buttonGoogleText: {
+    color: "#1C4A99",
+    textAlign: "center",
+    fontWeight: "700",
+    fontSize: 16,
+    letterSpacing: 0.5,
+  },
   buttonSecondary: {
     backgroundColor: "#163B7A",
     padding: 16,
@@ -259,8 +319,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 16,
   },
-
-  // Estilos dos Termos
   termsLink: { marginTop: 20, alignItems: "center" },
   termsText: {
     color: "#1C4A99",

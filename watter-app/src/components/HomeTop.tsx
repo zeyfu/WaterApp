@@ -4,12 +4,17 @@ import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 interface HomeTopProps {
   onProfilePress: () => void;
-  onNotificationPress: () => void; // Removi o '?' pois agora é essencial
+  onNotificationPress: () => void;
   onLogoutPress: () => void;
-  notificationsActive: boolean; // NOVO: Para saber se está ON ou OFF
-  isGoalReached: boolean; // NOVO: Para mudar a cor para verde
+  notificationsActive: boolean;
+  isGoalReached: boolean;
 }
 
+/**
+ * Barra de navegação superior da tela Home.
+ * Renderiza os botões de acesso ao perfil, controle de notificações e encerramento de sessão,
+ * adaptando visualmente as cores do ícone de alerta de acordo com o status atual do usuário.
+ */
 export function HomeTop({
   onProfilePress,
   onNotificationPress,
@@ -17,30 +22,29 @@ export function HomeTop({
   notificationsActive,
   isGoalReached,
 }: HomeTopProps) {
+  /**
+   * Define dinamicamente a coloração do ícone de lembretes.
+   * Regra: Verde se atingiu a meta, Azul se estiver ativo e Cinza se desativado/pausado.
+   */
+  const getNotificationColor = (): string => {
+    if (!notificationsActive) return "#94A3B8";
+    return isGoalReached ? "#28a745" : "#1C4A99";
+  };
+
   return (
     <View style={styles.topBar}>
-      {/* PERFIL */}
       <TouchableOpacity onPress={onProfilePress}>
         <Ionicons name="person-circle" size={34} color="#1C4A99" />
       </TouchableOpacity>
 
-      {/* SINO DINÂMICO */}
       <TouchableOpacity onPress={onNotificationPress}>
         <Ionicons
           name={notificationsActive ? "notifications" : "notifications-off"}
           size={28}
-          // Lógica de cores: Verde (Meta), Azul (Ativo), Cinza (Pausado)
-          color={
-            notificationsActive
-              ? isGoalReached
-                ? "#28a745"
-                : "#1C4A99"
-              : "#94A3B8"
-          }
+          color={getNotificationColor()}
         />
       </TouchableOpacity>
 
-      {/* LOGOUT */}
       <TouchableOpacity onPress={onLogoutPress}>
         <Ionicons name="log-out-outline" size={30} color="#1C4A99" />
       </TouchableOpacity>
@@ -52,7 +56,7 @@ const styles = StyleSheet.create({
   topBar: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center", // Garante que fiquem alinhados na mesma linha
+    alignItems: "center",
     marginBottom: 25,
   },
 });

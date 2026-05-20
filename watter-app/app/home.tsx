@@ -8,7 +8,7 @@ import {
   StatusBar,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 
 // Estilos e Temas
@@ -29,6 +29,7 @@ import {
 // Componentes
 import { AddWaterFAB } from "../src/components/AddWaterFAB";
 import { AddWaterModal } from "../src/components/AddWaterModal";
+import { CelebrationModal } from "../src/components/CelebrationModal";
 import HistoryCard from "../src/components/HistoryCard";
 import { HomeTop } from "../src/components/HomeTop";
 import { ProgressBar } from "../src/components/ProgressBar";
@@ -52,6 +53,7 @@ export default function Home() {
     setWater,
     refresh,
   } = useWaterData(user);
+  const [celebrationVisible, setCelebrationVisible] = useState(false);
 
   // 2. Sincronizar Notificações
   useEffect(() => {
@@ -105,7 +107,7 @@ export default function Home() {
         const reached = newTotal >= currentGoal;
         await scheduleWaterNotifications(settings, reached);
         if (reached && water < currentGoal) {
-          Alert.alert("Meta Atingida! 🎯", "Lembretes pausados. Bom descanso!");
+          setCelebrationVisible(true);
         }
       }
       setModalVisible(false);
@@ -213,6 +215,10 @@ export default function Home() {
           if (amt > 0) addWaterAmount(amt);
           setCustomAmount("");
         }}
+      />
+      <CelebrationModal
+        visible={celebrationVisible}
+        onClose={() => setCelebrationVisible(false)}
       />
     </View>
   );

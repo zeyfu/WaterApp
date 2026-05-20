@@ -20,10 +20,16 @@ import {
 import { registerUser } from "../src/services/auth";
 import { saveUserData } from "../src/services/firestore";
 
+interface PasswordStrength {
+  label: string;
+  color: string;
+  percent: number;
+}
+
 export default function Register() {
   const router = useRouter();
 
-  // Estados dos inputs
+  // Estados dos formulários de cadastro
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -31,23 +37,28 @@ export default function Register() {
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("Outro");
 
-  // Estados de controle e UI
+  // Estados de controle de UI e validação
   const [loading, setLoading] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [passwordLevel, setPasswordLevel] = useState({
+  const [passwordLevel, setPasswordLevel] = useState<PasswordStrength>({
     label: "",
     color: "#DDD",
     percent: 0,
   });
 
-  // 1. Validação de Email (Regex)
-  const validateEmail = (email: string) => {
+  /**
+   * Executa a validação sintática do formato do e-mail via Regex.
+   */
+  const validateEmail = (inputEmail: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+    return emailRegex.test(inputEmail);
   };
 
-  // 2. Feedback de Força da Senha
+  /**
+   * Monitora e calcula em tempo real o nível de complexidade
+   * e segurança da senha inserida pelo usuário.
+   */
   useEffect(() => {
     if (password.length === 0) {
       setPasswordLevel({ label: "", color: "#DDD", percent: 0 });
@@ -68,52 +79,68 @@ export default function Register() {
     }
   }, [password]);
 
-  // 3. Máscara de Peso (Troca vírgula por ponto)
+  /**
+   * Normaliza a inserção do peso substituindo vírgulas por pontos decimais.
+   */
   const handleWeightChange = (text: string) => {
     const formatted = text.replace(",", ".");
     setWeight(formatted);
   };
 
+  /**
+   * Orquestra o fluxo de validação local, criação da credencial
+   * de autenticação no Firebase e persistência do perfil no Firestore.
+   */
   const handleRegister = async () => {
-    const cleanEmail = email.trim(); // Remove espaços acidentais
+    const cleanEmail = email.trim();
 
-    // 1. Log de depuração (olhe o terminal do VS Code/Metro)
-    console.log("Tentando cadastrar:", cleanEmail);
-
-    // 2. Validação visual imediata
     if (!validateEmail(cleanEmail)) {
-      console.log("Email inválido detectado pelo Regex");
       Alert.alert(
         "E-mail Inválido",
-        "O formato do e-mail não é válido. Verifique se esqueceu o '@' ou o '.com'.",
+        "O formato do e-mail não é válido. Verifique os caracteres informados.",
         [{ text: "Entendi" }],
       );
-      return; // Para aqui e não tenta cadastrar no Firebase
+      return;
     }
 
     if (password.length < 6) {
-      Alert.alert("Senha Curta", "A senha precisa de pelo menos 6 caracteres.");
+      Alert.alert(
+        "Senha Curta",
+        "A senha precisa ter pelo menos 6 caracteres.",
+      );
+      return;
+    }
+
+    if (passwordLevel.percent < 60) {
+      Alert.alert(
+        "Senha Fraca",
+        "Sua senha precisa ser mais segura (mescle letras maiúsculas, minúsculas e números).",
+      );
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert("Erro", "As senhas não coincidem.");
+      Alert.alert("Erro", "As senhas informadas não coincidem.");
       return;
     }
 
     if (!acceptedTerms) {
-      Alert.alert("Termos", "Aceite os termos para continuar.");
+      Alert.alert(
+        "Termos de Uso",
+        "É necessário aceitar os termos e políticas para continuar.",
+      );
       return;
     }
 
     setLoading(true);
 
     try {
-      // Usamos o cleanEmail aqui também
       const userCredential = await registerUser(cleanEmail, password);
 
+      // Dispara o gatilho nativo de verificação por e-mail do Firebase
       await sendEmailVerification(userCredential.user);
 
+      // Inicializa os dados do perfil biográfico com cálculo dinâmico de meta base (35ml/kg)
       await saveUserData(userCredential.user.uid, {
         email: cleanEmail,
         name: "",
@@ -124,72 +151,30 @@ export default function Register() {
       });
 
       setLoading(false);
-      Alert.alert("Sucesso!", "Verifique seu e-mail para validar a conta.");
-      router.replace("/");
-    } catch (error: any) {
-      setLoading(false);
-      console.error("Erro do Firebase:", error.code, error.message);
-
-      // Se o Regex passar mas o Firebase ainda achar o email inválido
-      if (error.code === "auth/invalid-email") {
-        Alert.alert(
-          "Erro de Cadastro",
-          "O e-mail digitado é inválido para o sistema.",
-        );
-      } else if (error.code === "auth/email-already-in-use") {
-        Alert.alert("Erro", "Este e-mail já está em uso.");
-      } else {
-        Alert.alert("Erro", "Ocorreu um problema inesperado. Tente novamente.");
-      }
-    }
-
-    if (passwordLevel.percent < 60) {
-      Alert.alert(
-        "Senha Fraca",
-        "A sua senha precisa ser mais segura (letras maiúsculas e números).",
-      );
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      Alert.alert("Erro", "As senhas não coincidem.");
-      return;
-    }
-
-    if (!acceptedTerms) {
-      Alert.alert("Termos", "Precisas aceitar os termos para continuar.");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const userCredential = await registerUser(email, password);
-
-      // Envio do e-mail de confirmação
-      await sendEmailVerification(userCredential.user);
-
-      await saveUserData(userCredential.user.uid, {
-        email: email,
-        name: "",
-        weight: Number(weight),
-        age: Number(age),
-        gender: gender,
-        goal: Number(weight) * 35,
-      });
-
-      setLoading(false);
       Alert.alert(
         "Sucesso!",
-        "Conta criada! Verifique o link enviado para o seu e-mail.",
+        "Conta criada com sucesso! Verifique a caixa de entrada do seu e-mail para validar o acesso.",
         [{ text: "OK", onPress: () => router.replace("/") }],
       );
     } catch (error: any) {
       setLoading(false);
-      // Tratamento de erros do Firebase
+      console.error("Erro no fluxo de registro Firebase:", error.code);
+
       if (error.code === "auth/email-already-in-use") {
-        Alert.alert("Erro", "Este e-mail já está registado.");
+        Alert.alert(
+          "Erro de Cadastro",
+          "Este endereço de e-mail já está registrado.",
+        );
+      } else if (error.code === "auth/invalid-email") {
+        Alert.alert(
+          "Erro de Cadastro",
+          "O e-mail digitado foi recusado pelo servidor.",
+        );
       } else {
-        Alert.alert("Erro no cadastro", error.message);
+        Alert.alert(
+          "Erro",
+          "Não foi possível concluir seu cadastro. Tente novamente.",
+        );
       }
     }
   };
@@ -233,7 +218,6 @@ export default function Register() {
               style={styles.input}
             />
 
-            {/* Input Senha com Olhinho */}
             <View style={styles.passwordContainer}>
               <TextInput
                 placeholder="Senha"
@@ -255,7 +239,6 @@ export default function Register() {
               </TouchableOpacity>
             </View>
 
-            {/* Feedback Força da Senha */}
             {password.length > 0 && (
               <View style={styles.strengthContainer}>
                 <View style={styles.strengthBarBackground}>
@@ -286,7 +269,6 @@ export default function Register() {
               style={[styles.input, { marginTop: 12 }]}
             />
 
-            {/* ROW DE PESO E IDADE CORRIGIDA (WRAPPER) */}
             <View style={styles.row}>
               <View style={[styles.inputWrapper, { marginRight: 10 }]}>
                 <Text style={styles.miniLabel}>Peso (kg)</Text>
