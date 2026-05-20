@@ -27,16 +27,7 @@
     },
     "plugins": [
       "expo-router",
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/images/logo.png",
-          "color": "#1C4A99",
-          "sounds": [
-            "./src/assets/raw/waterdrop.mp3"
-          ]
-        }
-      ],
+      "expo-notifications",
       [
         "expo-splash-screen",
         {
