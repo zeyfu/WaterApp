@@ -1,40 +1,40 @@
 import * as Location from "expo-location";
 
-// 🌡️ buscar clima dinâmico
 export async function getWeather(): Promise<number | null> {
   try {
-    // 📍 permissão
     const { status } = await Location.requestForegroundPermissionsAsync();
-
     if (status !== "granted") {
-      console.log("Permissão negada");
-
+      console.log("Permissão de localização negada");
       return null;
     }
-
-    // 📍 localização atual
-    const location = await Location.getCurrentPositionAsync({});
+    const location = await Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.Lowest,
+    });
 
     const latitude = location.coords.latitude;
-
     const longitude = location.coords.longitude;
 
-    // 🌡️ API
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
     const response = await fetch(
       `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m`,
+      { signal: controller.signal },
     );
 
-    const data = await response.json();
+    clearTimeout(timeoutId);
 
+    const data = await response.json();
     return data.current.temperature_2m;
   } catch (error) {
-    console.log("Erro clima:", error);
-
+    console.log(
+      "App operando offline ou sinal fraco. Usando meta padrão.",
+      error,
+    );
     return null;
   }
 }
 
-// 🎯 calcular meta
 export function calculateGoal(
   baseGoal: number,
   temperature: number | null,
@@ -42,9 +42,7 @@ export function calculateGoal(
   if (!temperature) return baseGoal;
 
   if (temperature >= 35) return baseGoal + 1000;
-
   if (temperature >= 30) return baseGoal + 700;
-
   if (temperature >= 25) return baseGoal + 400;
 
   return baseGoal;

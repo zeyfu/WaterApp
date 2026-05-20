@@ -57,42 +57,51 @@ export function useWaterData(user: any) {
 
       // 4. Agrupamento e Histórico
       const grouped = logs.reduce((acc: any, log: any) => {
-        acc[log.date] = (acc[log.date] || 0) + log.amount;
+        if (!acc[log.date]) {
+          acc[log.date] = { total: 0, goal: log.currentGoal || finalGoal };
+        }
+        acc[log.date].total += log.amount;
         return acc;
       }, {});
 
       const historyArray = Object.keys(grouped)
-        .map((date) => ({ date, total: grouped[date] }))
+        .map((date) => ({
+          date,
+          total: grouped[date].total,
+          goal: grouped[date].goal,
+        }))
         .sort((a, b) => b.date.localeCompare(a.date));
 
       setHistory(historyArray);
 
       // 5. Água de Hoje
       const now = new Date();
-      const offset = now.getTimezoneOffset() * 60000; // compensação de fuso
+      const offset = now.getTimezoneOffset() * 60000;
       const localISODate = new Date(now.getTime() - offset)
         .toISOString()
         .split("T")[0];
 
-      setWater(grouped[localISODate] || 0);
+      const todayStr = localISODate;
+      setWater(grouped[todayStr]?.total || 0);
 
       // 6. Cálculo de Streak (Sequência Atual)
       let s = 0;
       let d = new Date();
 
-      const todayStr = localISODate;
-
-      // Se não bateu a meta hoje, verificamos se a sequência está viva por ontem
-      if ((grouped[todayStr] || 0) < finalGoal) {
+      if ((grouped[todayStr]?.total || 0) < finalGoal) {
         d.setDate(d.getDate() - 1);
       }
 
       while (true) {
         const ds = d.toISOString().split("T")[0];
-        if (grouped[ds] >= finalGoal) {
+        const targetGoal = grouped[ds]?.goal || finalGoal; // Usa a meta daquele dia específico
+
+        if (grouped[ds]?.total >= targetGoal) {
           s++;
           d.setDate(d.getDate() - 1);
-        } else break;
+        } else {
+          break;
+        }
       }
       setStreak(s);
 

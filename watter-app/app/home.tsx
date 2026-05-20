@@ -1,16 +1,14 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { onAuthStateChanged, User } from "firebase/auth";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   ScrollView,
   StatusBar,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 
 // Estilos e Temas
@@ -39,13 +37,11 @@ import WaterGlass from "../src/components/WaterGlass";
 
 export default function Home() {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
-  const [authLoading, setAuthLoading] = useState(true);
+  const user = auth.currentUser;
   const [modalVisible, setModalVisible] = useState(false);
   const [customAmount, setCustomAmount] = useState("");
   const [historyExpanded, setHistoryExpanded] = useState(false);
   const [notificationsActive, setNotificationsActive] = useState(true);
-
   const {
     water,
     currentGoal,
@@ -56,16 +52,6 @@ export default function Home() {
     setWater,
     refresh,
   } = useWaterData(user);
-
-  // 1. Monitorar Autenticação
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setAuthLoading(false);
-      if (!currentUser) router.replace("/" as any);
-    });
-    return unsubscribe;
-  }, []);
 
   // 2. Sincronizar Notificações
   useEffect(() => {
@@ -111,7 +97,7 @@ export default function Home() {
   const addWaterAmount = async (amount: number) => {
     if (!user) return;
     try {
-      await addWaterLog(user.uid, amount);
+      await addWaterLog(user.uid, amount, currentGoal);
       const newTotal = water + amount;
       setWater(newTotal);
       const settings = await getNotificationSettings(user.uid);
@@ -130,15 +116,6 @@ export default function Home() {
   };
 
   const percentage = Math.min((water / currentGoal) * 100, 100);
-
-  if (authLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-      </View>
-    );
-  }
-
   if (!user) return null;
 
   return (

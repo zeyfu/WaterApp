@@ -5,6 +5,7 @@ import { StyleSheet, Text, View } from "react-native";
 type HistoryItem = {
   date: string;
   total: number;
+  goal?: number;
 };
 
 type Props = {
@@ -23,7 +24,8 @@ export default function HistoryCard({ history, currentGoal }: Props) {
 
       <View style={styles.grid}>
         {history.map((item) => {
-          const isGoalReached = item.total >= currentGoal;
+          const dailyGoal = item.goal || currentGoal;
+          const isGoalReached = item.total >= dailyGoal;
 
           return (
             <View
@@ -86,12 +88,16 @@ const styles = StyleSheet.create({
     rowGap: 12,
   },
   squareCard: {
-    width: "31%",
+    flex: 1,
+    flexGrow: 1,
+    minWidth: 90,
+    maxWidth: 130,
     aspectRatio: 1,
     borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
     padding: 8,
+    margin: "1%",
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.03)",
     elevation: 2,
