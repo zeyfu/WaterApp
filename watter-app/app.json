@@ -52,7 +52,8 @@
       [
         "@react-native-google-signin/google-signin",
         {
-          "icon": "./assets/images/logo.png"
+          "icon": "./assets/images/logo.png",
+          "iosUrlScheme": "com.googleusercontent.apps.57277302927-j3cu22pu9vmr8bb4cqkie86plcklhus7"
         }
       ]
     ],
